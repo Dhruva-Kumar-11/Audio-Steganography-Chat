@@ -1,7 +1,7 @@
 [
   {
     "username": "Adam",
-    "password": "$2b$10$xS8gpRpAOFHPuzFCvl8Mmu6hum5IU8y3WT9Iqsl14ikJaSettHipq"
+    "password": "$2b$10$w.2LRid4G3N/XIy2hs2CwuKaiA01I3l3KUPXguCC2Cn/c98R4oXzm"
   },
   {
     "username": "Dhruva",
@@ -11,4 +11,7 @@
     "username": "Darshan",
     "password": "$2b$10$55VoUSkwCAGiSxTa.138..A6UFjsvmm.Nl7E/se.JRGAXX/R6G7ey"
   },
-  
+  {
+    
+  }
+]
