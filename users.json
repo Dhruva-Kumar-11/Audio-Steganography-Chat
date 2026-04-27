@@ -18,5 +18,25 @@
   {
     "username": "Deepak",
     "password": "$2b$10$T/F4W5SfTjQ92VghGl4U3.Gp4E7H1e8KiQzOdvqgO9wDawUISuib."
+  },
+  {
+    "username": "Akshith_kumar",
+    "password": "$2b$10$NXOxjnijE2EL53frfNI8mO.jpuq/hgnfByw0ij7G.Z5K8cGIO7itq"
+  },
+  {
+    "username": "#jaVasCript:/*-/*`/*\\`/*'/*\"/**/(/* */oNcliCk=alert(5397) )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert(5397)//>\\x3e",
+    "password": "$2b$10$eFbBDodZKeseXIVbhkiKvudlcTahtUG4naaBSl57uLEAwmQVd.LcK"
+  },
+  {
+    "username": "#jaVasCript:/*-/*`/*\\`/*'/*\"/**/(/* */oNcliCk=alert(5397) )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd#javascript:alert(5397)=alert(5397)//>\\x3e",
+    "password": "$2b$10$jeouhZ3oKiQLvoOuLFqxs.P5bcPeVA8vLjqKGpm07LSP4nJ8EQHxq"
+  },
+  {
+    "username": "?name=abc#<img src=\"random.gif\" onerror=alert(5397)>",
+    "password": "$2b$10$MU4IconJmtVFouGIDe.Rq.nPTiimXAcvpBrVDFZf5V3y4VySDFgX."
+  },
+  {
+    "username": "#javascript:alert(5397)",
+    "password": "$2b$10$2KGy48q5FnKMNSMSqUdSQ.s3PUzpM6H31iZA/ng5U.A4m2UeW5k.K"
   }
 ]
