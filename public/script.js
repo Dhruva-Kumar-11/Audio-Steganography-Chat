@@ -1,335 +1,269 @@
+// 1. GLOBAL SCOPE LOCKDOWN
+let mediaRecorder = null;
+let audioChunks = [];
+let audioStream = null;
+let isRecording = false;
+
+// Enforce identity verification
+const username = localStorage.getItem('username');
+if (!username) {
+    window.location.href = '/';
+}
+
 const socket = io();
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 // DOM Elements
 const recordBtn = document.getElementById('record-btn');
+const stopBtn = document.getElementById('stop-btn');
 const sendTextBtn = document.getElementById('send-text-btn');
 const textInput = document.getElementById('text-input');
 const secretInput = document.getElementById('secret-msg');
 const keyInput = document.getElementById('enc-key');
 const carrierUpload = document.getElementById('carrier-upload');
-const messagesDiv = document.getElementById('messages');
+const chatFeed = document.getElementById('chat-feed');
 
-const stagingArea = document.getElementById('staging-area');
-const sendStagedBtn = document.getElementById('send-staged-btn');
-const cancelStagedBtn = document.getElementById('cancel-staged-btn');
+// --- 2. GLOBAL RECORDING HANDLERS ---
 
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
-let pendingAudioBlob = null;
-let stagingWs = null;
-
-// Configuration for Ultrasonic FSK
-const FREQ_0 = 18500;
-const FREQ_1 = 19000;
-const BIT_DURATION = 0.05;
-
-// --- 1. CORE LOGIC (FSK & AES) ---
-
-function encrypt(text, password) {
-    return CryptoJS.AES.encrypt(text, password).toString();
-}
-
-function decrypt(ciphertext, password) {
+window.startRecording = async () => {
     try {
-        const bytes = CryptoJS.AES.decrypt(ciphertext, password);
-        return bytes.toString(CryptoJS.enc.Utf8) || null;
-    } catch (e) { return null; }
-}
+        console.log("RECORDER: Initializing...");
+        audioChunks = [];
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(audioStream);
+        
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+        };
 
-async function injectData(audioBlob, dataString) {
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    
-    const bits = [];
-    for (let i = 0; i < dataString.length; i++) {
-        const charCode = dataString.charCodeAt(i);
-        for (let j = 7; j >= 0; j--) bits.push((charCode >> j) & 1);
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(audioChunks, { type: "audio/ogg; codecs=opus" });
+            console.log("RECORDER: Blob Created");
+            
+            const secret = secretInput.value;
+            const key = keyInput.value;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(blob); 
+            reader.onloadend = () => {
+                const base64Audio = reader.result;
+                const payload = {
+                    type: 'audio',
+                    audio: base64Audio,
+                    sender: username,
+                    hidden_payload: secret || "",
+                    aes_key: key || ""
+                };
+                sendMessage(payload);
+            };
+
+            audioChunks = [];
+            secretInput.value = '';
+            keyInput.value = '';
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        recordBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        const micAnim = document.getElementById('mic-animation');
+        if (micAnim) micAnim.style.display = 'flex';
+    } catch (err) {
+        console.error("RECORDER: Start Failure", err);
     }
+};
 
-    const offlineCtx = new OfflineAudioContext(
-        audioBuffer.numberOfChannels,
-        audioBuffer.length + (bits.length * BIT_DURATION * audioBuffer.sampleRate),
-        audioBuffer.sampleRate
-    );
-
-    const source = offlineCtx.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(offlineCtx.destination);
-    source.start(0);
-
-    let startTime = 0;
-    bits.forEach(bit => {
-        const osc = offlineCtx.createOscillator();
-        const gain = offlineCtx.createGain();
-        osc.frequency.value = bit === 1 ? FREQ_1 : FREQ_0;
-        gain.gain.setValueAtTime(0.1, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + BIT_DURATION);
-        osc.connect(gain);
-        gain.connect(offlineCtx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + BIT_DURATION);
-        startTime += BIT_DURATION;
-    });
-
-    const renderedBuffer = await offlineCtx.startRendering();
-    return bufferToWavBlob(renderedBuffer);
-}
-
-async function extractData(audioBlob) {
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    const data = audioBuffer.getChannelData(0);
-    const sampleRate = audioBuffer.sampleRate;
-    const bits = [];
-    const samplesPerBit = BIT_DURATION * sampleRate;
-    
-    for (let i = 0; i < data.length; i += samplesPerBit) {
-        const chunk = data.slice(i, i + samplesPerBit);
-        if (chunk.length < samplesPerBit) break;
-        const power0 = getFrequencyPower(chunk, FREQ_0, sampleRate);
-        const power1 = getFrequencyPower(chunk, FREQ_1, sampleRate);
-        if (power0 > 0.001 || power1 > 0.001) bits.push(power1 > power0 ? 1 : 0);
+window.stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
     }
-
-    let result = "";
-    for (let i = 0; i < bits.length; i += 8) {
-        let byte = 0;
-        for (let j = 0; j < 8; j++) byte = (byte << 1) | bits[i + j];
-        if (byte === 0) break;
-        result += String.fromCharCode(byte);
+    if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
     }
-    return result;
-}
+    isRecording = false;
+    recordBtn.style.display = 'block';
+    stopBtn.style.display = 'none';
+    const micAnim = document.getElementById('mic-animation');
+    if (micAnim) micAnim.style.display = 'none';
+};
 
-function getFrequencyPower(buffer, targetFreq, sampleRate) {
-    let real = 0, imag = 0;
-    for (let n = 0; n < buffer.length; n++) {
-        const angle = (2 * Math.PI * targetFreq * n) / sampleRate;
-        real += buffer[n] * Math.cos(angle);
-        imag += buffer[n] * Math.sin(angle);
-    }
-    return Math.sqrt(real * real + imag * imag) / buffer.length;
-}
+window.forceStopRecording = (e) => {
+    if(e) e.preventDefault();
+    window.stopRecording();
+};
 
-function bufferToWavBlob(buffer) {
-    const numOfChan = buffer.numberOfChannels,
-        length = buffer.length * numOfChan * 2 + 44,
-        bufferArr = new ArrayBuffer(length),
-        view = new DataView(bufferArr),
-        channels = [];
-    let i, sample, offset = 0, pos = 0;
+// --- 3. GLOBAL CLICK LISTENER (THE DECODE WITH UI EFFECTS) ---
 
-    const setUint16 = d => { view.setUint16(pos, d, true); pos += 2; };
-    const setUint32 = d => { view.setUint32(pos, d, true); pos += 4; };
+window.addEventListener("click", async (e) => {
+    if (e.target.classList.contains('decode-btn')) {
+        const card = e.target.closest('.message');
+        const secretText = card.dataset.payload;
+        const correctKey = card.dataset.key;
 
-    setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157);
-    setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan);
-    setUint32(buffer.sampleRate); setUint32(buffer.sampleRate * 2 * numOfChan);
-    setUint16(numOfChan * 2); setUint16(16); setUint32(0x61746164); setUint32(length - pos - 4);
-
-    for(i = 0; i < numOfChan; i++) channels.push(buffer.getChannelData(i));
-    while(pos < length) {
-        for(i = 0; i < numOfChan; i++) {
-            sample = Math.max(-1, Math.min(1, channels[i][offset]));
-            sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0;
-            view.setInt16(pos, sample, true); pos += 2;
+        if (!secretText) {
+            if(window.showToast) window.showToast("SYSTEM_ERROR: PAYLOAD_MISSING", true);
+            return;
         }
-        offset++;
+
+        // Visual: Decrypting Progress Bar
+        const progressContainer = card.querySelector('.progress-container');
+        const progressBar = card.querySelector('.progress-bar');
+        const originalText = e.target.textContent;
+        
+        e.target.disabled = true;
+        e.target.textContent = "DECRYPTING...";
+        progressContainer.style.display = 'block';
+        progressBar.style.animation = 'progress 1.5s linear forwards';
+
+        // Wait 1.5s for "Scanning" effect
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        progressContainer.style.display = 'none';
+        progressBar.style.animation = 'none';
+        e.target.textContent = originalText;
+        e.target.disabled = false;
+
+        const pass = prompt("ENTER DECRYPTION KEY:");
+        if (!pass) return;
+
+        if (pass === correctKey) {
+            const reveal = document.createElement('div');
+            reveal.style.color = 'var(--neon-cyan)';
+            reveal.style.textShadow = '0 0 15px var(--neon-cyan)';
+            reveal.style.marginTop = '15px';
+            reveal.style.padding = '12px';
+            reveal.style.background = 'rgba(0, 255, 255, 0.1)';
+            reveal.style.border = '1px solid var(--neon-cyan)';
+            reveal.style.fontFamily = 'Share Tech Mono, monospace';
+            reveal.style.fontWeight = 'bold';
+            reveal.style.position = 'relative';
+            
+            const msgSpan = document.createElement('span');
+            msgSpan.textContent = `> INTERCEPTED: ${secretText}`;
+            reveal.appendChild(msgSpan);
+
+            const timerSpan = document.createElement('span');
+            timerSpan.className = 'timer-display';
+            timerSpan.textContent = "[15s]";
+            reveal.appendChild(timerSpan);
+            
+            card.appendChild(reveal);
+            e.target.style.display = 'none';
+
+            // 15-Second Timer with countdown
+            let timeLeft = 15;
+            const countdown = setInterval(() => {
+                timeLeft--;
+                timerSpan.textContent = `[${timeLeft}s]`;
+                if (timeLeft <= 0) clearInterval(countdown);
+            }, 1000);
+
+            setTimeout(() => {
+                msgSpan.textContent = "> [DATA_PURGED]";
+                reveal.style.color = "#444";
+                reveal.style.textShadow = "none";
+                reveal.style.borderColor = "#333";
+                timerSpan.remove();
+                setTimeout(() => reveal.remove(), 2000);
+            }, 15000);
+        } else {
+            if(window.showToast) window.showToast("ACCESS_DENIED: UNAUTHORIZED_KEY", true);
+        }
     }
-    return new Blob([bufferArr], { type: "audio/wav" });
+});
+
+// --- 4. MESSAGE HANDLING & SOCKETS ---
+
+function sendMessage(payload) {
+    renderMessage(payload, true);
+    socket.emit('chat-message', payload);
 }
 
-// --- 2. HYBRID MESSAGING ---
+socket.on('chat-message', (payload) => {
+    renderMessage(payload, false);
+});
+
+// --- 5. UI RENDERING (THE RECEIVE) ---
+
+function renderMessage(payload, isMe) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'message-wrapper';
+    wrapper.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+    wrapper.style.marginBottom = '25px';
+
+    const senderLabel = document.createElement('div');
+    senderLabel.className = 'sender-tag';
+    senderLabel.textContent = isMe ? 'YOU' : (payload.sender || 'UNKNOWN');
+    wrapper.appendChild(senderLabel);
+
+    const card = document.createElement('div');
+    card.className = `message ${payload.type}`;
+    card.style.border = isMe ? '1px solid var(--neon-cyan)' : '1px solid var(--neon-pink)';
+    card.style.padding = '18px';
+    card.style.background = 'rgba(10, 10, 10, 0.95)';
+
+    if (payload.type === 'text') {
+        card.textContent = payload.content;
+    } else {
+        card.dataset.payload = payload.hidden_payload || "";
+        card.dataset.key = payload.aes_key || "";
+
+        const label = document.createElement('div');
+        label.style.color = isMe ? 'var(--neon-cyan)' : 'var(--neon-pink)';
+        label.style.fontSize = '12px';
+        label.style.fontWeight = 'bold';
+        label.style.marginBottom = '12px';
+        label.textContent = '> ENCRYPTED AUDIO PAYLOAD';
+        card.appendChild(label);
+
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.src = payload.audio;
+        audio.style.width = '100%';
+        card.appendChild(audio);
+
+        // Progress Bar for Decrypting animation
+        const progContainer = document.createElement('div');
+        progContainer.className = 'progress-container';
+        const progBar = document.createElement('div');
+        progBar.className = 'progress-bar';
+        progContainer.appendChild(progBar);
+        card.appendChild(progContainer);
+
+        const decodeBtn = document.createElement('button');
+        decodeBtn.className = 'decode-btn';
+        decodeBtn.textContent = 'DECODE_PAYLOAD';
+        card.appendChild(decodeBtn);
+    }
+
+    wrapper.appendChild(card);
+    chatFeed.appendChild(wrapper);
+    chatFeed.scrollTop = chatFeed.scrollHeight;
+}
+
+// --- 6. INPUT HANDLERS ---
 
 sendTextBtn.onclick = () => {
     const text = textInput.value;
     if (!text) return;
-    const payload = { type: 'text', content: text };
-    socket.emit('audio-data', payload);
-    renderMessage(payload, true);
+    sendMessage({ type: 'text', content: text, sender: username });
     textInput.value = '';
 };
-
-// Modified: This now handles the STAGED emission
-sendStagedBtn.onclick = async () => {
-    if (!pendingAudioBlob) return;
-
-    const secret = secretInput.value;
-    const key = keyInput.value;
-    let finalBlob = pendingAudioBlob;
-
-    if (secret && key) {
-        sendStagedBtn.disabled = true;
-        sendStagedBtn.textContent = '🔒 MODULATING...';
-        const encrypted = encrypt(secret, key);
-        finalBlob = await injectData(pendingAudioBlob, encrypted);
-    }
-
-    const buffer = await finalBlob.arrayBuffer();
-    const payload = { type: 'stego', audio: buffer };
-    socket.emit('audio-data', payload);
-    renderMessage(payload, true);
-    
-    clearStaging();
-};
-
-cancelStagedBtn.onclick = () => {
-    clearStaging();
-};
-
-function clearStaging() {
-    pendingAudioBlob = null;
-    stagingArea.style.display = 'none';
-    if (stagingWs) {
-        stagingWs.destroy();
-        stagingWs = null;
-    }
-    secretInput.value = '';
-    keyInput.value = '';
-    sendStagedBtn.disabled = false;
-    sendStagedBtn.textContent = '🚀 HIDE & SEND SECURE PAYLOAD';
-}
-
-function stageAudio(blob) {
-    pendingAudioBlob = blob;
-    stagingArea.style.display = 'flex';
-    
-    if (stagingWs) stagingWs.destroy();
-    
-    stagingWs = WaveSurfer.create({
-        container: '#staging-waveform',
-        waveColor: '#00ff41',
-        progressColor: '#fff',
-        height: 60,
-    });
-    
-    const url = URL.createObjectURL(blob);
-    stagingWs.load(url);
-}
-
-// --- 3. UI RENDERING (WAVESURFER & SELF-DESTRUCT) ---
-
-function renderMessage(payload, isMe) {
-    const div = document.createElement('div');
-    div.className = `message ${payload.type}`;
-    div.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
-
-    if (payload.type === 'text') {
-        div.textContent = payload.content;
-    } else {
-        const wavesContainer = document.createElement('div');
-        wavesContainer.id = 'ws-' + Math.random().toString(36).substr(2, 9);
-        div.appendChild(wavesContainer);
-
-        const indicator = document.createElement('span');
-        indicator.className = 'stego-indicator';
-        indicator.textContent = '🔒';
-        div.appendChild(indicator);
-
-        const audioBlob = new Blob([payload.audio], { type: 'audio/wav' });
-        const url = URL.createObjectURL(audioBlob);
-
-        setTimeout(() => {
-            const ws = WaveSurfer.create({
-                container: '#' + wavesContainer.id,
-                waveColor: isMe ? '#00ff41' : '#ff4444',
-                progressColor: '#fff',
-                height: 50,
-            });
-            ws.load(url);
-            div.onclick = () => ws.playPause();
-            div.ondblclick = () => handleSelfDestruct(audioBlob, div);
-        }, 0);
-    }
-
-    messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-let pendingCipherBlob = null;
-let pendingDiv = null;
-
-async function handleSelfDestruct(blob, div) {
-    const hiddenData = await extractData(blob);
-    if (!hiddenData) {
-        alert("No hidden sequence detected.");
-        return;
-    }
-    
-    pendingCipherBlob = blob;
-    pendingDiv = div;
-    document.getElementById('decrypt-modal').style.display = 'block';
-    document.getElementById('modal-overlay').style.display = 'block';
-}
-
-document.getElementById('submit-decrypt').onclick = () => {
-    const pass = document.getElementById('modal-pass').value;
-
-    extractData(pendingCipherBlob).then(cipher => {
-        const clear = decrypt(cipher, pass);
-        if (clear) {
-            const p = document.createElement('div');
-            p.className = 'destruct-text';
-            p.textContent = `[DECRYPTED]: ${clear}`;
-            pendingDiv.prepend(p);
-            closeModal();
-            
-            setTimeout(() => {
-                p.textContent = "[MESSAGE DESTROYED]";
-                p.style.color = "#444";
-                setTimeout(() => p.remove(), 2000);
-            }, 10000);
-        } else {
-            alert("ACCESS DENIED: INCORRECT AES KEY");
-        }
-    });
-    document.getElementById('modal-pass').value = '';
-};
-
-// --- 4. INPUT HANDLERS ---
 
 carrierUpload.onchange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-        const blob = new Blob([await file.arrayBuffer()], { type: file.type });
-        stageAudio(blob);
-    }
-};
-
-async function initRecorder() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(audioChunks, { type: 'audio/wav' });
-            audioChunks = [];
-            stageAudio(blob);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            sendMessage({ 
+                type: 'audio', 
+                audio: reader.result, 
+                sender: username,
+                hidden_payload: secretInput.value || "",
+                aes_key: keyInput.value || ""
+            });
+            secretInput.value = '';
+            keyInput.value = '';
         };
-        recordBtn.disabled = false;
-    } catch (err) { recordBtn.textContent = 'MIC ERROR'; }
-}
-
-initRecorder();
-
-recordBtn.onclick = () => {
-    if (!mediaRecorder) return;
-    if (!isRecording) {
-        audioChunks = [];
-        mediaRecorder.start();
-        isRecording = true;
-        recordBtn.textContent = '🛑 STOP';
-        recordBtn.style.background = '#ff4444';
-    } else {
-        mediaRecorder.stop();
-        isRecording = false;
-        recordBtn.textContent = '🎤 RECORD';
-        recordBtn.style.background = '';
     }
 };
-
-socket.on('audio-stream', (payload) => {
-    renderMessage(payload, false);
-});

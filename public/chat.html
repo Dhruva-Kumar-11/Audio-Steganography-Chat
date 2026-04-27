@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER-LINK // SECURE_UPLINK</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-pink: #ff00ff;
+            --neon-cyan: #00ffff;
+            --spy-bg: #050505;
+            --glass-bg: rgba(15, 15, 15, 0.85);
+            --border-glow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background: var(--spy-bg);
+            color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Scanline Animation */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 100;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        /* Cyber Grid Background */
+        .grid-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            perspective: 1000px;
+            transform: rotateX(45deg);
+            transform-origin: top;
+            animation: gridMove 15s linear infinite;
+        }
+
+        @keyframes gridMove {
+            from { background-position: 0 0; }
+            to { background-position: 0 800px; }
+        }
+
+        #chat-container {
+            width: 95%;
+            max-width: 1000px;
+            height: 90vh;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--neon-cyan);
+            box-shadow: var(--border-glow);
+            border-radius: 4px;
+            position: relative;
+            z-index: 10;
+        }
+
+        header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .glitch-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            margin: 0;
+            letter-spacing: 3px;
+            color: var(--neon-cyan);
+            text-shadow: 2px 2px var(--neon-pink);
+            animation: glitch 4s infinite;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 2px 2px var(--neon-pink); }
+            2% { text-shadow: -2px -2px var(--neon-cyan); }
+            4% { text-shadow: 2px 2px var(--neon-pink); }
+            95% { text-shadow: 2px 2px var(--neon-pink); }
+            97% { text-shadow: -3px 3px var(--neon-cyan); }
+            100% { text-shadow: 2px 2px var(--neon-pink); }
+        }
+
+        #chat-feed {
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        #chat-feed::-webkit-scrollbar { width: 4px; }
+        #chat-feed::-webkit-scrollbar-thumb { background: var(--neon-cyan); }
+
+        .message-wrapper { display: flex; flex-direction: column; max-width: 80%; }
+        .sender-tag { font-size: 11px; margin-bottom: 6px; color: var(--neon-cyan); opacity: 0.7; letter-spacing: 1px; }
+
+        .message {
+            padding: 15px;
+            border-radius: 2px;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            position: relative;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+        .message.stego { border-right: 3px solid var(--neon-pink); }
+        .message.text { border-left: 3px solid var(--neon-cyan); }
+
+        .control-panel {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-top: 1px solid rgba(0, 255, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-row { display: flex; gap: 12px; }
+        
+        input {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
+            color: var(--neon-cyan);
+            padding: 14px;
+            font-family: 'Share Tech Mono', monospace;
+            outline: none;
+            flex: 1;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 255, 255, 0.2); }
+
+        button {
+            padding: 12px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid var(--neon-cyan);
+            background: transparent;
+            color: var(--neon-cyan);
+        }
+        button:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 15px var(--neon-cyan); }
+
+        .decode-btn {
+            z-index: 10000 !important;
+            pointer-events: all !important;
+            position: relative;
+            background: rgba(255, 0, 255, 0.2);
+            border: 1px solid var(--neon-pink);
+            color: var(--neon-pink);
+            padding: 5px 15px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            width: 100%;
+            margin-top: 12px;
+            animation: pulseGlow 2s infinite;
+        }
+
+        .decode-btn:hover {
+            background: var(--neon-pink);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 5px var(--neon-pink); }
+            50% { box-shadow: 0 0 15px var(--neon-pink); }
+            100% { box-shadow: 0 0 5px var(--neon-pink); }
+        }
+
+        /* Progress Bar Animation */
+        .progress-container {
+            width: 100%; height: 4px; background: #222; margin-top: 10px; overflow: hidden; display: none;
+        }
+        .progress-bar {
+            width: 0%; height: 100%; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        @keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
+
+        /* Countdown Timer Style */
+        .timer-display {
+            color: var(--neon-pink); font-weight: bold; margin-left: 10px; font-size: 14px;
+        }
+
+        .secure-zone {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; border: 1px dashed rgba(255, 0, 255, 0.4); padding: 15px; position: relative;
+        }
+
+        #mic-animation { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 255, 0.1); justify-content: center; align-items: center; z-index: 5; }
+        .wave-bar { width: 4px; height: 20px; background: var(--neon-pink); margin: 0 3px; animation: wavePulse 1s infinite ease-in-out; }
+        @keyframes wavePulse { 0%, 100% { height: 12px; } 50% { height: 40px; } }
+
+        #toast-container { position: fixed; bottom: 25px; right: 25px; z-index: 2000; }
+        .toast { background: #000; border-left: 4px solid var(--neon-cyan); padding: 15px 25px; margin-top: 10px; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); animation: slideInToast 0.3s; }
+        @keyframes slideInToast { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+
+    <div id="chat-container">
+        <header>
+            <h1 class="glitch-header">CYBER-LINK // UPLINK_STABLE</h1>
+            <div id="user-display" style="color: var(--neon-pink); font-size: 13px;">IDENT: [RETRIEVING...]</div>
+        </header>
+
+        <div id="chat-feed"></div>
+
+        <div class="control-panel">
+            <div class="input-row">
+                <input type="text" id="text-input" placeholder="> SEND_CLEARTEXT_DATA...">
+                <button id="send-text-btn">TRANSMIT</button>
+            </div>
+
+            <div class="secure-zone">
+                <div id="mic-animation">
+                    <div class="wave-bar" style="animation-delay: 0.1s"></div>
+                    <div class="wave-bar" style="animation-delay: 0.3s"></div>
+                    <div class="wave-bar" style="animation-delay: 0.5s"></div>
+                    <div class="wave-bar" style="animation-delay: 0.2s"></div>
+                    <div class="wave-bar" style="animation-delay: 0.4s"></div>
+                </div>
+
+                <div style="grid-column: span 2; color: #666; font-size: 11px; margin-bottom: 5px;">[ SECURE_STEGO_SUBSYSTEM ]</div>
+                <input type="text" id="secret-msg" placeholder="> HIDDEN_PAYLOAD">
+                <input type="password" id="enc-key" placeholder="> AES_KEY">
+                
+                <div style="display: flex; gap: 12px; grid-column: span 2;">
+                    <button style="flex: 1; position: relative; overflow: hidden;">
+                        📎 CARRIER_UPLOAD
+                        <input type="file" id="carrier-upload" accept="audio/*" style="position: absolute; top: 0; left: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;">
+                    </button>
+                    <button id="record-btn" onclick="startRecording()" style="flex: 1; border-color: var(--neon-pink); color: var(--neon-pink);">🎤 RECORD_VOICE</button>
+                    <button id="stop-btn" onclick="forceStopRecording(event)" style="flex: 1; border-color: #ff00ff; color: #ff00ff; display: none; background: rgba(255, 0, 255, 0.1); pointer-events: auto; z-index: 1000; position: relative;">🛑 STOP_SESSION</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+    <script>
+        const user = localStorage.getItem('username') || 'ANON_AGENT';
+        document.getElementById('user-display').textContent = `IDENT: [${user.toUpperCase()}]`;
+
+        window.showToast = function(message, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            if(isError) toast.style.borderColor = 'var(--neon-pink)';
+            toast.textContent = `> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = '0.5s';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+        window.alert = (msg) => window.showToast(msg, msg.toLowerCase().includes('fail') || msg.toLowerCase().includes('denied'));
+    </script>
+</body>
+</html>
