@@ -4,22 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CYBER-LINK // AUTHENTICATION</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --neon-pink: #ff00ff;
-            --neon-cyan: #00ffff;
-            --glass-bg: rgba(10, 10, 10, 0.85);
-            --border-glow: 0 0 15px rgba(0, 255, 255, 0.4);
+            --bg-obsidian: #050505;
+            --bg-glass: rgba(17, 17, 18, 0.85);
+            --text-main: #E0E0E0;
+            --electric-cyan: #00f2ff;
+            --vivid-magenta: #ff00ea;
+            --glass-border: linear-gradient(135deg, #00ffff, #ff00ff);
         }
 
-        * { box-sizing: border-box; }
+        * { 
+            box-sizing: border-box; 
+            border-radius: 0 !important;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background-color: #050505;
-            color: var(--neon-cyan);
-            font-family: 'Share Tech Mono', monospace;
+            background-color: var(--bg-obsidian);
+            color: var(--text-main);
+            font-family: 'Montserrat', sans-serif;
             height: 100vh;
             overflow: hidden;
             display: flex;
@@ -33,63 +39,69 @@
             top: 0;
             left: 0;
             z-index: -1;
-            opacity: 0.3;
+            opacity: 0.2;
         }
 
-        /* Scanline Effect */
+        /* Subtle Scanline Effect */
         body::before {
             content: " ";
             display: block;
             position: absolute;
             top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
             z-index: 2;
-            background-size: 100% 2px, 3px 100%;
+            background-size: 100% 2px;
             pointer-events: none;
         }
 
         .login-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            border: 1px solid var(--neon-cyan);
-            padding: 3rem;
-            border-radius: 4px;
-            width: 400px;
-            box-shadow: var(--border-glow);
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            padding: 3.5rem;
+            width: 420px;
             position: relative;
             z-index: 10;
-            animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        .login-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 1px solid transparent;
+            background: var(--glass-border) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: destination-out;
+            mask-composite: exclude;
+            opacity: 0.4;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
         }
 
-        .glitch-wrapper {
-            position: relative;
-            margin-bottom: 2rem;
+        .login-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 242, 255, 0.1);
+        }
+
+        .login-card:hover::before {
+            opacity: 1;
+        }
+
+        .header-wrapper {
+            margin-bottom: 2.5rem;
             text-align: center;
         }
 
         h2 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
             margin: 0;
             text-transform: uppercase;
-            letter-spacing: 4px;
-            color: var(--neon-cyan);
-            text-shadow: 2px 2px var(--neon-pink);
-            animation: glitch 3s infinite;
-        }
-
-        @keyframes glitch {
-            0% { text-shadow: 2px 2px var(--neon-pink); }
-            2% { text-shadow: -3px -3px var(--neon-cyan); }
-            4% { text-shadow: 2px 2px var(--neon-pink); }
-            96% { text-shadow: 2px 2px var(--neon-pink); }
-            98% { text-shadow: 4px 4px var(--neon-cyan); }
-            100% { text-shadow: 2px 2px var(--neon-pink); }
+            letter-spacing: 5px;
+            color: var(--text-main);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 15px;
         }
 
         .input-group {
@@ -97,61 +109,76 @@
             position: relative;
         }
 
+        .label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #888;
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
         input {
             width: 100%;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid #333;
-            color: var(--neon-cyan);
-            font-family: 'Share Tech Mono', monospace;
+            padding: 12px 18px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            font-family: 'Montserrat', sans-serif;
             outline: none;
-            transition: 0.3s;
-            border-radius: 0;
+            transition: all 0.3s ease;
+            pointer-events: auto !important;
+            position: relative;
+            z-index: 100;
         }
 
         input:focus {
-            border-color: var(--neon-pink);
-            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+            border-color: var(--electric-cyan);
+            box-shadow: 0 0 15px var(--electric-cyan);
+            background: rgba(0, 242, 255, 0.05);
         }
 
         .btn-container {
             display: flex;
             flex-direction: column;
             gap: 15px;
+            margin-top: 2rem;
         }
 
         button {
             padding: 12px;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: bold;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 2px;
             cursor: pointer;
-            transition: 0.3s;
-            border-radius: 0;
+            transition: all 0.3s ease;
             background: transparent;
+            border: 1px solid var(--electric-cyan);
+            color: var(--electric-cyan);
+            position: relative;
+            overflow: hidden;
+            pointer-events: auto !important;
+            z-index: 100;
         }
 
-        .btn-login {
-            border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
-        }
-
-        .btn-login:hover {
-            background: var(--neon-cyan);
+        button:hover {
+            background: var(--electric-cyan);
             color: #000;
-            box-shadow: 0 0 20px var(--neon-cyan);
+            box-shadow: 0 0 25px var(--electric-cyan);
         }
 
         .btn-register {
-            border: 1px solid var(--neon-pink);
-            color: var(--neon-pink);
+            border-color: var(--vivid-magenta);
+            color: var(--vivid-magenta);
         }
 
         .btn-register:hover {
-            background: var(--neon-pink);
+            background: var(--vivid-magenta);
             color: #000;
-            box-shadow: 0 0 20px var(--neon-pink);
+            box-shadow: 0 0 25px var(--vivid-magenta);
         }
 
         /* Toast Styles */
@@ -163,21 +190,21 @@
         }
 
         .toast {
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
             padding: 15px 25px;
             margin-top: 10px;
-            font-family: 'Share Tech Mono', monospace;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            border-left: 4px solid var(--electric-cyan);
             animation: toastIn 0.3s ease-out;
-            border-left: 5px solid var(--neon-cyan);
         }
 
         .toast.error {
-            border-color: var(--neon-pink);
-            color: var(--neon-pink);
-            border-left-color: var(--neon-pink);
+            border-left-color: var(--vivid-magenta);
         }
 
         @keyframes toastIn {
@@ -190,21 +217,22 @@
     <canvas id="matrix-canvas"></canvas>
 
     <div class="login-card">
-        <div class="glitch-wrapper">
-            <h2 data-text="CYBER-LINK">CYBER-LINK</h2>
+        <div class="header-wrapper">
+            <h2>CYBER-LINK</h2>
         </div>
         <div class="input-group">
-            <input type="text" id="username" placeholder="> ACCESS_ID" required autocomplete="off">
+            <span class="label">SECURE_ACCESS_ID</span>
+            <input type="text" id="username" placeholder="> ID_STATION_01" required autocomplete="off">
         </div>
         <div class="input-group">
-            <input type="password" id="password" placeholder="> PASSWORD_KEY" required>
+            <span class="label">ENCRYPTION_KEY</span>
+            <input type="password" id="password" placeholder="> ********" required>
         </div>
         <div class="btn-container">
-            <button class="btn-login" onclick="loginUser()">[ INITIALIZE ]</button>
-            <button class="btn-register" onclick="registerUser()">[ REGISTER_NEW ]</button>
+            <button onclick="loginUser()">INITIALIZE_SESSION</button>
+            <button class="btn-register" onclick="registerUser()">REGISTER_NEW_NODE</button>
         </div>
     </div>
-
     <div id="toast-container"></div>
 
     <script>
