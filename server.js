@@ -141,11 +141,22 @@ app.post('/api/login', async (req, res) => {
 
 // 6. Socket.io handling
 io.on('connection', (socket) => {
+    // Update user count for all clients
+    io.emit('user-count', io.engine.clientsCount);
+
     socket.on('audio-data', (data) => {
         socket.broadcast.emit('audio-stream', data);
     });
 
     socket.on('chat-message', (data) => {
         socket.broadcast.emit('chat-message', data);
+    });
+
+    socket.on('ping', (cb) => {
+        if (typeof cb === "function") cb();
+    });
+
+    socket.on('disconnect', () => {
+        io.emit('user-count', io.engine.clientsCount);
     });
 });
