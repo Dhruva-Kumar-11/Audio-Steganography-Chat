@@ -11,7 +11,17 @@
     "username": "Darshan",
     "password": "$2b$10$55VoUSkwCAGiSxTa.138..A6UFjsvmm.Nl7E/se.JRGAXX/R6G7ey"
   },
+  {},
   {
-    
+    "username": "testuser",
+    "password": "$2b$10$oHKWbLJwEc46yB2kHRGh1eMHVzioqhr2Zr/gc23IujYvIwnBUh4li"
+  },
+  {
+    "username": "Hruday",
+    "password": "$2b$10$BL4lKZOkrKnVO3SL1.GpWetxOR9Ip2GBiSWim7fvUCks/W9wPaOzW"
+  },
+  {
+    "username": "newuser1",
+    "password": "$2b$10$SpSuGrplbTiRi25Q0j8ptu3Pi5tWSCmaFOaadCbNjz9d3mWGvNayy"
   }
 ]

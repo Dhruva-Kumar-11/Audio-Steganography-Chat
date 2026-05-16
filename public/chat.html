@@ -3,115 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER-LINK // DASHBOARD_v2.0</title>
-    <link rel="stylesheet" href="style.css">
+    <title>WhisperNet — Secure Audio Messaging</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="chat2.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Upper Row: Metadata Cards -->
-        <div class="metadata-grid">
-            <div class="data-card">
-                <div class="data-card-inner">
-                    <div class="card-title">SYSTEM STATUS</div>
-                    <div class="card-value">
-                        <span class="dot"></span>
-                        <span class="status-magenta">Operational</span>
-                    </div>
-                    <button class="btn-magenta" onclick="window.showToast('SYSTEM_SYNC_COMPLETE')" style="margin-top: 10px; font-size: 9px; padding: 5px 10px;">SYSTEM CHECK</button>
-                    <div class="sync-status-text">Verifying Network Integrity</div>
-                </div>
-            </div>
-            
-            <div class="data-card">
-                <div class="data-card-inner">
-                    <div class="card-title">LSB DENSITY</div>
-                    <div class="card-value">
-                        <span class="status-cyan">12%</span>
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 12%;"></div>
-                    </div>
-                </div>
-            </div>
+    <!-- Animated Background -->
+    <div class="bg-grid"></div>
+    <div class="bg-aurora"></div>
+    <div class="bg-particles" id="particles"></div>
 
-            <div class="data-card">
-                <div class="data-card-inner">
-                    <div class="card-title">ACTIVE CHANNELS</div>
-                    <div class="card-value">
-                        <span id="user-count-val" class="status-amber">1</span>
-                    </div>
-                    <div style="font-size: 9px; color: #555; margin-top: 5px;">STABLE_UPLINK</div>
-                </div>
+    <!-- ═══ HEADER ═══════════════════════════════════════════ -->
+    <header class="header">
+        <div class="header-brand">
+            <div class="brand-logo">
+                <img src="logo.png" alt="WhisperNet Logo" class="brand-logo-img">
             </div>
-
-            <div class="data-card">
-                <div class="data-card-inner">
-                    <div class="card-title">COVERT ENTRYPOINTS</div>
-                    <div class="card-value">
-                        <span style="font-size: 14px;">🌐 Secure</span>
-                    </div>
-                    <div id="ping-val" style="font-size: 9px; color: #555; margin-top: 5px;">24ms</div>
-                </div>
+            <div class="brand-text">
+                <h1 class="brand-title">WhisperNet</h1>
+                <p class="brand-sub">Hidden Messages · Inside Sound · Encrypted</p>
             </div>
         </div>
 
-        <!-- Lower Row: Primary Modules -->
-        <div class="main-grid">
-            <!-- Left: Audit Log -->
-            <div class="module-card">
-                <div class="module-card-inner">
-                    <div class="module-header">SYSTEM_AUDIT_LOG</div>
-                    <div id="audit-log"></div>
+        <div class="header-chips">
+            <div class="chip chip-green">
+                <span class="chip-dot blink"></span>
+                <span id="user-count-val" class="chip-val">1</span>
+                <span class="chip-label">Online</span>
+            </div>
+            <div class="chip">
+                <span class="chip-label">Latency</span>
+                <span id="ping-val" class="chip-val blue">--</span>
+                <span class="chip-label">ms</span>
+            </div>
+            <div class="chip">
+                <span class="chip-label">Audio Use</span>
+                <span id="lsb-header-val" class="chip-val purple">0%</span>
+            </div>
+            <div class="chip chip-green">
+                <span class="chip-dot"></span>
+                <span class="chip-label">Secure &amp; Encrypted</span>
+            </div>
+        </div>
+
+        <div class="header-user">
+            <div class="user-avatar">
+                <span id="user-avatar-char">?</span>
+            </div>
+            <div class="user-info">
+                <span id="user-display" class="user-name">Loading...</span>
+                <span class="user-status">● Active</span>
+            </div>
+            <button id="logout-btn" class="btn-icon-sm" title="Logout">🚪</button>
+        </div>
+    </header>
+
+    <!-- ═══ MAIN WORKSPACE ════════════════════════════════════ -->
+    <div class="workspace">
+
+        <!-- LEFT: Activity Log + Online Users -->
+        <aside class="col col-left">
+            <div class="card card-flex">
+                <div class="card-header">
+                    <div class="card-title-row">
+                        <div class="card-icon blue">📋</div>
+                        <h2 class="card-title">Activity Log</h2>
+                        <div class="card-live-badge">LIVE</div>
+                    </div>
+                </div>
+                <div id="audit-log" class="card-body scrollable log-feed"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-row">
+                        <div class="card-icon green">👥</div>
+                        <h2 class="card-title">Online Users</h2>
+                        <span id="user-count-val2" class="badge-count">0</span>
+                    </div>
+                </div>
+                <div id="agent-roster-list" class="card-body roster-body">
+                    <p class="empty-hint">Waiting for users...</p>
                 </div>
             </div>
+        </aside>
 
-            <!-- Center: Chat Interface -->
-            <div id="chat-interface" class="module-card">
-                <div class="module-card-inner">
-                    <div class="module-header">SECURE_COMM_INTERFACE</div>
-                    <div id="chat-feed"></div>
-                    
-                    <div class="control-section">
-                        <div id="user-display" style="font-size: 10px; color: #666; margin-bottom: 10px;">IDENT: [RETRIEVING...]</div>
-                        
-                        <div class="input-row">
-                            <input type="text" id="text-input" placeholder="> SEND_CLEARTEXT_DATA...">
-                            <button id="send-text-btn">TRANSMIT</button>
+        <!-- CENTER: Secure Chat -->
+        <main class="col col-center">
+            <div class="card card-flex chat-card">
+                <div class="card-header">
+                    <div class="card-title-row">
+                        <div class="card-icon purple">💬</div>
+                        <h2 class="card-title">Secure Chat</h2>
+                        <div class="encryption-badge">
+                            <span class="enc-dot"></span>
+                            End-to-End Encrypted
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chat-feed" class="chat-feed scrollable">
+                    <div class="chat-empty">
+                        <div class="empty-icon">🔒</div>
+                        <p>This conversation is private and encrypted.</p>
+                        <p class="empty-sub">Send a message or audio file to begin.</p>
+                    </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div id="typing-indicator" class="typing-indicator" style="display:none;">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <span id="typing-text">Agent is typing...</span>
+                </div>
+
+                <div class="chat-composer">
+                    <!-- Text row -->
+                    <div class="compose-row">
+                        <input type="text" id="text-input" placeholder="Type a message..." class="compose-input" autocomplete="off">
+                        <button id="send-text-btn" class="btn-send">
+                            <span class="btn-send-text">Send</span>
+                            <span class="btn-send-icon">➤</span>
+                        </button>
+                    </div>
+
+                    <!-- Hidden Payload Section -->
+                    <div class="payload-section">
+                        <div class="payload-section-header">
+                            <span class="payload-section-icon">🔐</span>
+                            <span>Hidden Payload (Optional)</span>
+                            <span class="payload-hint">Embedded invisibly inside audio</span>
+                        </div>
+                        <div class="payload-inputs">
+                            <input type="text" id="secret-msg" placeholder="Secret message to hide..." class="payload-input">
+                            <input type="password" id="enc-key" placeholder="Password / Key" class="payload-input payload-key">
                         </div>
 
-                        <div style="border: 1px dashed #333; padding: 15px; margin-top: 10px;">
-                            <div style="font-size: 10px; color: #555; margin-bottom: 10px;">[ COVERT_PAYLOAD_SUBSYSTEM ]</div>
-                            <div class="input-row" style="margin-bottom: 10px;">
-                                <input type="text" id="secret-msg" placeholder="> HIDDEN_PAYLOAD">
-                                <input type="password" id="enc-key" placeholder="> AES_KEY">
-                            </div>
-                            
-                            <div class="input-row">
-                                <button style="flex: 1; position: relative; overflow: hidden;">
-                                    📎 CARRIER_UPLOAD
-                                    <input type="file" id="carrier-upload" accept="audio/*" style="position: absolute; top: 0; left: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;">
-                                </button>
-                                <button id="record-btn" onclick="startRecording()" style="flex: 1;">🎤 RECORD_VOICE</button>
-                                <button id="stop-btn" onclick="forceStopRecording(event)" style="flex: 1; display: none;">🛑 STOP_SESSION</button>
-                            </div>
+                        <div id="preview-container" class="audio-preview-box" style="display:none;">
+                            <div class="preview-label">🎵 Audio ready to send</div>
+                            <audio id="audio-preview" controls class="audio-preview-player"></audio>
+                        </div>
 
-                            <div id="mic-animation" style="margin-top: 10px;">
-                                <div class="wave-bar" style="animation: wavePulse 1s infinite 0.1s"></div>
-                                <div class="wave-bar" style="animation: wavePulse 1s infinite 0.3s"></div>
-                                <div class="wave-bar" style="animation: wavePulse 1s infinite 0.5s"></div>
-                                <span style="font-size: 9px; color: var(--vivid-magenta); margin-left: 10px;">CAPTURING_AUDIO...</span>
+                        <div class="media-actions">
+                            <label class="btn-media">
+                                📎 Attach Audio
+                                <input type="file" id="carrier-upload" accept="audio/*" style="display:none;">
+                            </label>
+                            <button id="record-btn" class="btn-media btn-record-media" onclick="startRecording()">🎤 Record Voice</button>
+                            <button id="stop-btn" class="btn-media btn-stop-media" onclick="forceStopRecording(event)" style="display:none;">⏹ Stop</button>
+                        </div>
+
+                        <div id="mic-animation" class="mic-animation" style="display:none;">
+                            <div class="mic-bars">
+                                <div class="wave-bar" style="animation-delay:.0s"></div>
+                                <div class="wave-bar" style="animation-delay:.15s"></div>
+                                <div class="wave-bar" style="animation-delay:.3s"></div>
+                                <div class="wave-bar" style="animation-delay:.45s"></div>
+                                <div class="wave-bar" style="animation-delay:.6s"></div>
                             </div>
+                            <span class="mic-label">Recording... click Stop when done</span>
                         </div>
                     </div>
                 </div>
             </div>
+        </main>
 
-            <!-- Right: Secure Vault -->
-            <div class="module-card">
-                <div class="module-card-inner">
-                    <div class="module-header">SECURE_VAULT_v1.0</div>
-                    <div id="vault-list"></div>
+        <!-- RIGHT: File Vault + Tools -->
+        <aside class="col col-right">
+            <div class="card card-flex">
+                <div class="card-header">
+                    <div class="card-title-row">
+                        <div class="card-icon amber">🗄️</div>
+                        <h2 class="card-title">File Vault</h2>
+                    </div>
                 </div>
+                <div id="vault-list" class="card-body scrollable vault-body">
+                    <p class="empty-hint">Received audio files appear here</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-row">
+                        <div class="card-icon purple">📊</div>
+                        <h2 class="card-title">Message Density</h2>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="density-display">
+                        <span id="lsb-density-val" class="density-val">0.0%</span>
+                        <span class="density-label">of audio used</span>
+                    </div>
+                    <div class="density-track">
+                        <div id="lsb-bar" class="density-fill" style="width:0%"></div>
+                    </div>
+                    <p id="lsb-detail" class="density-detail">Upload audio and type a message to see density</p>
+                </div>
+            </div>
+
+            <div class="twin-cards">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-row">
+                            <div class="card-icon red">⏳</div>
+                            <h2 class="card-title" style="font-size:12px;">Auto Delete</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="timer-input-row">
+                            <input type="number" id="sdt-minutes" min="1" max="60" value="5" class="timer-input">
+                            <span class="timer-unit">min</span>
+                        </div>
+                        <div id="sdt-display" class="timer-countdown" style="display:none;">05:00</div>
+                        <div class="timer-btns">
+                            <button id="sdt-arm-btn" class="btn-danger-sm">Arm</button>
+                            <button id="sdt-abort-btn" class="btn-abort-sm" style="display:none;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-row">
+                            <div class="card-icon red">🗑️</div>
+                            <h2 class="card-title" style="font-size:12px;">Clear All</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="clear-hint">Wipe all messages, logs and files from view</p>
+                        <button id="shredder-btn" class="btn-clear">🗑 Clear Everything</button>
+                        <p id="shred-status" class="clear-status"></p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ═══ BOTTOM ROW ════════════════════════════════════════ -->
+    <div class="bottom-row">
+        <!-- Network Latency -->
+        <div class="card bottom-card">
+            <div class="card-header">
+                <div class="card-title-row">
+                    <div class="card-icon blue">📡</div>
+                    <h2 class="card-title">Network Latency</h2>
+                    <span id="ping-current" class="live-val blue">-- ms</span>
+                    <span id="ping-avg" class="live-sub">avg: --</span>
+                </div>
+            </div>
+            <div class="bottom-canvas-wrap">
+                <canvas id="ping-canvas" class="bottom-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Message History -->
+        <div class="card bottom-card">
+            <div class="card-header">
+                <div class="card-title-row">
+                    <div class="card-icon green">📜</div>
+                    <h2 class="card-title">Message History</h2>
+                </div>
+            </div>
+            <div class="bottom-table-wrap scrollable">
+                <table class="history-table">
+                    <thead><tr>
+                        <th>Time</th><th>Dir</th><th>User</th><th>Size</th><th>Key</th>
+                    </tr></thead>
+                    <tbody id="tx-log-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Traffic Mask -->
+        <div class="card bottom-card">
+            <div class="card-header">
+                <div class="card-title-row">
+                    <div class="card-icon amber">🌊</div>
+                    <h2 class="card-title">Traffic Mask</h2>
+                </div>
+            </div>
+            <div class="card-body traffic-body">
+                <div class="traffic-status-row">
+                    <div id="noise-pulse" class="traffic-dot"></div>
+                    <span id="noise-status" class="traffic-status-text">Inactive</span>
+                </div>
+                <div class="traffic-count">
+                    <span id="noise-count" class="big-count">0</span>
+                    <span class="big-count-label">decoy packets sent</span>
+                </div>
+                <button id="noise-toggle-btn" class="btn-traffic">Start Masking</button>
+                <p class="traffic-hint">Sends random decoy data every 2–5 seconds to mask real traffic patterns</p>
+            </div>
+        </div>
+
+        <!-- Audio Visualizer -->
+        <div class="card bottom-card">
+            <div class="card-header">
+                <div class="card-title-row">
+                    <div class="card-icon purple">🎵</div>
+                    <h2 class="card-title">Audio Visualizer</h2>
+                </div>
+            </div>
+            <div class="bottom-canvas-wrap">
+                <canvas id="spectrum-canvas" class="bottom-canvas spectrum-canvas"></canvas>
+                <div id="spectrum-status" class="spectrum-hint">Play an audio message to see the visualizer</div>
             </div>
         </div>
     </div>
@@ -121,26 +317,43 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
     <script>
-        const user = localStorage.getItem('username') || 'ANON_AGENT';
-        document.getElementById('user-display').textContent = `IDENT: [${user.toUpperCase()}]`;
+        // User identity
+        const user = localStorage.getItem('username') || 'Anonymous';
+        const displayName = user.charAt(0).toUpperCase() + user.slice(1).toLowerCase();
+        document.getElementById('user-display').textContent = displayName;
+        const avatarEl = document.getElementById('user-avatar-char');
+        if (avatarEl) avatarEl.textContent = displayName.charAt(0).toUpperCase();
 
-        window.showToast = function(message, isError = false) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            if(isError) toast.style.borderLeftColor = 'var(--accent-magenta)';
-            toast.textContent = `> ${message}`;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = '0.5s';
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
+        // Particle background
+        (function() {
+            const c = document.getElementById('particles');
+            if (!c) return;
+            for (let i = 0; i < 40; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*8}s;animation-duration:${6+Math.random()*8}s;opacity:${0.2+Math.random()*0.4}`;
+                c.appendChild(p);
+            }
+        })();
+
+        // Sync user count to second badge
+        const uc2 = document.getElementById('user-count-val2');
+        const uc1 = document.getElementById('user-count-val');
+        if (uc1 && uc2) {
+            new MutationObserver(() => uc2.textContent = uc1.textContent).observe(uc1, { childList: true, characterData: true, subtree: true });
         }
-        window.alert = (msg) => window.showToast(msg, msg.toLowerCase().includes('fail') || msg.toLowerCase().includes('denied'));
+
+        // Toast
+        window.showToast = function(message, isError = false) {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = 'toast' + (isError ? ' toast-error' : '');
+            t.innerHTML = `<span class="toast-icon">${isError ? '⚠' : '✓'}</span><span>${message}</span>`;
+            c.appendChild(t);
+            requestAnimationFrame(() => t.classList.add('toast-visible'));
+            setTimeout(() => { t.classList.remove('toast-visible'); setTimeout(() => t.remove(), 400); }, 3500);
+        };
+        window.alert = (msg) => window.showToast(msg, msg.toLowerCase().includes('fail') || msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('error'));
     </script>
-</body>
-</html>
-ipt>
 </body>
 </html>
