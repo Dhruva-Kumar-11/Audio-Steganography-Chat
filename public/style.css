@@ -324,6 +324,14 @@ input:focus, textarea:focus {
     display: none;
     gap: 5px;
     align-items: center;
+    color: var(--vivid-magenta);
+    font-size: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    text-transform: uppercase;
+}
+
+#mic-animation.active {
+    display: flex;
 }
 
 .wave-bar {

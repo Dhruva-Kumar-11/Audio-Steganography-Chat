@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER-LINK // AUTHENTICATION</title>
+    <title>WhisperNet — Secure Access</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -88,8 +88,18 @@
         }
 
         .header-wrapper {
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
         }
 
         h2 {
@@ -100,8 +110,7 @@
             text-transform: uppercase;
             letter-spacing: 5px;
             color: var(--text-main);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            padding-bottom: 15px;
+            padding-bottom: 5px;
         }
 
         .input-group {
@@ -218,20 +227,23 @@
 
     <div class="login-card">
         <div class="header-wrapper">
-            <h2>CYBER-LINK</h2>
+            <img src="logo.png" alt="WhisperNet Logo" class="login-logo">
+            <h2>WhisperNet</h2>
         </div>
-        <div class="input-group">
-            <span class="label">SECURE_ACCESS_ID</span>
-            <input type="text" id="username" placeholder="> ID_STATION_01" required autocomplete="off">
-        </div>
-        <div class="input-group">
-            <span class="label">ENCRYPTION_KEY</span>
-            <input type="password" id="password" placeholder="> ********" required>
-        </div>
-        <div class="btn-container">
-            <button onclick="loginUser()">INITIALIZE_SESSION</button>
-            <button class="btn-register" onclick="registerUser()">REGISTER_NEW_NODE</button>
-        </div>
+        <form id="login-form" onsubmit="event.preventDefault();">
+            <div class="input-group">
+                <span class="label">SECURE_ACCESS_ID</span>
+                <input type="text" id="username" placeholder="> ID_STATION_01" required autocomplete="off">
+            </div>
+            <div class="input-group">
+                <span class="label">ENCRYPTION_KEY</span>
+                <input type="password" id="password" placeholder="> ********" required>
+            </div>
+            <div class="btn-container">
+                <button type="button" onclick="loginUser()">INITIALIZE_SESSION</button>
+                <button type="button" class="btn-register" onclick="registerUser()">REGISTER_NEW_NODE</button>
+            </div>
+        </form>
     </div>
     <div id="toast-container"></div>
 

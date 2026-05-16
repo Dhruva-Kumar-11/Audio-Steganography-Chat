@@ -5,6 +5,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -24,9 +25,9 @@ if (!fs.existsSync(USERS_FILE)) {
 }
 
 // 1. MongoDB Connection (Local Fallback)
-const LOCAL_MONGO_URI = 'mongodb://127.0.0.1:27017/ChatAppDB';
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ChatAppDB';
 
-mongoose.connect(LOCAL_MONGO_URI, {
+mongoose.connect(MONGO_URI, {
     serverSelectionTimeoutMS: 5000 // Fast fail for local
 })
   .then(() => {
@@ -35,8 +36,8 @@ mongoose.connect(LOCAL_MONGO_URI, {
     startServer();
   })
   .catch(err => {
-    console.warn("Local MongoDB not found. Falling back to local 'users.json' file.");
-    console.log("Check if MongoDB service is running on your machine.");
+    console.log("[INFO] Local MongoDB not found. Falling back to local 'users.json' file.");
+    console.log("[INFO] Start MongoDB service if you want database persistence.");
     isUsingMongoDB = false;
     startServer();
   });
@@ -56,8 +57,8 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // Middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 3. Home Route
@@ -77,7 +78,7 @@ function saveLocalUser(user) {
 }
 
 // 4. Registration Route
-app.post('/register', async (req, res) => {
+app.post('/api/register', async (req, res) => {
     try {
         const { username, password } = req.body;
         
@@ -140,23 +141,57 @@ app.post('/api/login', async (req, res) => {
 });
 
 // 6. Socket.io handling
+const agentRoster = new Map(); // MODULE_B: tracks socket.id -> username
+
 io.on('connection', (socket) => {
-    // Update user count for all clients
+    // Update user count for all clients immediately upon connection
     io.emit('user-count', io.engine.clientsCount);
+    console.log(`AGENT_CONNECTED. TOTAL_ACTIVE: ${io.engine.clientsCount}`);
 
     socket.on('audio-data', (data) => {
-        socket.broadcast.emit('audio-stream', data);
+        io.emit('receive-audio', data);
     });
 
     socket.on('chat-message', (data) => {
-        socket.broadcast.emit('chat-message', data);
+        io.emit('chat-message', data);
+    });
+
+    socket.on('incoming-packet', (data) => {
+        // Use io.emit to ensure the packet is broadcast to ALL connected agents
+        io.emit('incoming-packet', data);
     });
 
     socket.on('ping', (cb) => {
         if (typeof cb === "function") cb();
     });
 
+    // MODULE_A: Live Ping Monitor
+    socket.on('ping-check', (ts, cb) => {
+        if (typeof cb === 'function') cb(ts);
+    });
+
+    // MODULE_B: Agent Roster
+    socket.on('register-agent', (data) => {
+        if (data && data.username) {
+            agentRoster.set(socket.id, data.username);
+            io.emit('agent-roster', Array.from(agentRoster.values()));
+        }
+    });
+
+    // MODULE_F: Noise Generator (separate event — never hits receive())
+    socket.on('noise-packet', (data) => {
+        socket.broadcast.emit('noise-packet', data);
+    });
+
+    socket.on('typing', (data) => {
+        socket.broadcast.emit('typing', { username: data.username, isTyping: data.isTyping });
+    });
+
     socket.on('disconnect', () => {
         io.emit('user-count', io.engine.clientsCount);
+        console.log(`AGENT_DISCONNECTED. TOTAL_ACTIVE: ${io.engine.clientsCount}`);
+        // MODULE_B: Remove from roster on disconnect
+        agentRoster.delete(socket.id);
+        io.emit('agent-roster', Array.from(agentRoster.values()));
     });
 });
