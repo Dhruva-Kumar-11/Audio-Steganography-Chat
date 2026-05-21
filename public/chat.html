@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="chat2.css">
 </head>
 <body>
+    <!-- Covert Handshake Full-Screen Glitch Overlay -->
+    <div id="covert-handshake-overlay"></div>
     <!-- Animated Background -->
     <div class="bg-grid"></div>
     <div class="bg-aurora"></div>
@@ -18,12 +20,13 @@
     <!-- ═══ HEADER ═══════════════════════════════════════════ -->
     <header class="header">
         <div class="header-brand">
-            <div class="brand-logo">
+            <div class="brand-logo" id="covert-logo-trigger" title="WhisperNet Logo">
                 <img src="logo.png" alt="WhisperNet Logo" class="brand-logo-img">
+                <span class="covert-status-dot"></span>
             </div>
             <div class="brand-text">
                 <h1 class="brand-title">WhisperNet</h1>
-                <p class="brand-sub">Hidden Messages · Inside Sound · Encrypted</p>
+                <p class="brand-sub" id="brand-sub-text">End-to-End Encrypted Secure Chat</p>
             </div>
         </div>
 
@@ -38,7 +41,7 @@
                 <span id="ping-val" class="chip-val blue">--</span>
                 <span class="chip-label">ms</span>
             </div>
-            <div class="chip">
+            <div class="chip covert-only">
                 <span class="chip-label">Audio Use</span>
                 <span id="lsb-header-val" class="chip-val purple">0%</span>
             </div>
@@ -103,11 +106,17 @@
                     </div>
                 </div>
 
+                <!-- Covert Secure Alert Banner -->
+                <div class="covert-alert-banner covert-only">
+                    <span class="covert-banner-dot"></span>
+                    <span class="covert-banner-text">SYSTEM UPLINK SECURE // LSB STEGO ENGINE ENUMERATED // DECONSTRUCTION ACTIVE</span>
+                </div>
+
                 <div id="chat-feed" class="chat-feed scrollable">
                     <div class="chat-empty">
-                        <div class="empty-icon">🔒</div>
-                        <p>This conversation is private and encrypted.</p>
-                        <p class="empty-sub">Send a message or audio file to begin.</p>
+                        <div class="empty-icon" id="chat-empty-icon">🔒</div>
+                        <p id="chat-empty-text">This conversation is private and encrypted.</p>
+                        <p id="chat-empty-sub" class="empty-sub">Send a message to begin.</p>
                     </div>
                 </div>
 
@@ -129,8 +138,9 @@
                         </button>
                     </div>
 
+
                     <!-- Hidden Payload Section -->
-                    <div class="payload-section">
+                    <div class="payload-section covert-only">
                         <div class="payload-section-header">
                             <span class="payload-section-icon">🔐</span>
                             <span>Hidden Payload (Optional)</span>
@@ -171,7 +181,7 @@
         </main>
 
         <!-- RIGHT: File Vault + Tools -->
-        <aside class="col col-right">
+        <aside class="col col-right covert-only">
             <div class="card card-flex">
                 <div class="card-header">
                     <div class="card-title-row">
@@ -184,7 +194,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card" id="density-card" style="display: none;">
                 <div class="card-header">
                     <div class="card-title-row">
                         <div class="card-icon purple">📊</div>
@@ -243,7 +253,7 @@
     <!-- ═══ BOTTOM ROW ════════════════════════════════════════ -->
     <div class="bottom-row">
         <!-- Network Latency -->
-        <div class="card bottom-card">
+        <div class="card bottom-card covert-only">
             <div class="card-header">
                 <div class="card-title-row">
                     <div class="card-icon blue">📡</div>
@@ -258,7 +268,7 @@
         </div>
 
         <!-- Message History -->
-        <div class="card bottom-card">
+        <div class="card bottom-card history-card">
             <div class="card-header">
                 <div class="card-title-row">
                     <div class="card-icon green">📜</div>
@@ -268,7 +278,7 @@
             <div class="bottom-table-wrap scrollable">
                 <table class="history-table">
                     <thead><tr>
-                        <th>Time</th><th>Dir</th><th>User</th><th>Size</th><th>Key</th>
+                        <th>Time</th><th>Dir</th><th>User</th><th>Size</th><th class="stego-element">Key</th>
                     </tr></thead>
                     <tbody id="tx-log-body"></tbody>
                 </table>
@@ -276,7 +286,7 @@
         </div>
 
         <!-- Traffic Mask -->
-        <div class="card bottom-card">
+        <div class="card bottom-card covert-only">
             <div class="card-header">
                 <div class="card-title-row">
                     <div class="card-icon amber">🌊</div>
@@ -298,7 +308,7 @@
         </div>
 
         <!-- Audio Visualizer -->
-        <div class="card bottom-card">
+        <div class="card bottom-card covert-only">
             <div class="card-header">
                 <div class="card-title-row">
                     <div class="card-icon purple">🎵</div>

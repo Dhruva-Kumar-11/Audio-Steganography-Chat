@@ -1,5 +1,17 @@
 const socket = io();
 
+// --- SHARED AUDIO CONTEXT LIFECYCLE ACCESSOR ---
+let globalAudioCtx = null;
+function getAudioContext() {
+    if (!globalAudioCtx) {
+        globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (globalAudioCtx.state === 'suspended') {
+        globalAudioCtx.resume();
+    }
+    return globalAudioCtx;
+}
+
 const username = localStorage.getItem('username') || 'ANON_AGENT';
 const chatFeed = document.getElementById('chat-feed');
 const textInput = document.getElementById('text-input');
@@ -124,13 +136,12 @@ socket.on('typing', (data) => {
     }
 });
 
-// ... rest of script until click listener ...
-
+// ... rest of script until click listener ...// Event Delegation for Decrypt interactions
 window.addEventListener("click", async (e) => {
     if (e.target.classList.contains('decode-btn')) {
         const card = e.target.closest('.message');
         const secretText = card.dataset.payload;
-        const correctKey = card.dataset.key;
+        const correctKey = card.dataset.key || '';
 
         if (!secretText) {
             addToAuditLog("SYSTEM_ERROR: PAYLOAD_MISSING");
@@ -145,20 +156,27 @@ window.addEventListener("click", async (e) => {
         
         e.target.disabled = true;
         e.target.textContent = "DECRYPTING...";
-        progressContainer.style.display = 'block';
-        progressBar.style.width = '0%';
         
-        // Trigger reflow to ensure transition starts
-        progressBar.offsetHeight; 
-        progressBar.style.transition = 'width 1.5s linear';
-        progressBar.style.width = '100%';
+        if (progressContainer) {
+            progressContainer.style.display = 'block';
+        }
+        if (progressBar) {
+            progressBar.style.width = '0%';
+            progressBar.offsetHeight; // trigger reflow
+            progressBar.style.transition = 'width 1.5s linear';
+            progressBar.style.width = '100%';
+        }
 
         // Wait 1.5s for "Scanning" effect
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        progressContainer.style.display = 'none';
-        progressBar.style.width = '0%';
-        progressBar.style.transition = 'none';
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+        }
+        if (progressBar) {
+            progressBar.style.width = '0%';
+            progressBar.style.transition = 'none';
+        }
         e.target.textContent = originalText;
         e.target.disabled = false;
 
@@ -166,7 +184,6 @@ window.addEventListener("click", async (e) => {
         const pass = correctKey ? prompt('Enter decryption key:') : '';
         if (pass === null) return; // user cancelled
 
-        // Coerce both sides to string so undefined correctKey == '' passes correctly
         const normalizedPass = pass || '';
         const normalizedKey  = correctKey || '';
 
@@ -195,7 +212,6 @@ window.addEventListener("click", async (e) => {
             card.appendChild(reveal);
             e.target.style.display = 'none';
 
-            // 15-Second Timer with countdown
             let timeLeft = 15;
             const countdown = setInterval(() => {
                 timeLeft--;
@@ -211,7 +227,6 @@ window.addEventListener("click", async (e) => {
                 setTimeout(() => reveal.remove(), 2000);
             }, 15000);
         } else {
-            // Error Handling: Log AES_KEY_MISMATCH instead of PAYLOAD_MISSING
             addToAuditLog("AES_KEY_MISMATCH");
             if(window.showToast) window.showToast("ACCESS_DENIED: INVALID_AES_KEY", true);
         }
@@ -230,11 +245,46 @@ async function getBase64FromUrl(url) {
     });
 }
 
+const LOG_MAP = {
+    'STEGO_PROTOCOL_ARMED': { normal: 'SECURE_CHANNEL_ACTIVATED', covert: 'STEGO_PROTOCOL_ARMED' },
+    'STEGO_PROTOCOL_DISARMED': { normal: 'SECURE_CHANNEL_DEACTIVATED', covert: 'STEGO_PROTOCOL_DISARMED' },
+    'VOICE_CAPTURE_STARTED': { normal: 'AUDIO_INPUT_STARTED', covert: 'VOICE_CAPTURE_STARTED' },
+    'VOICE_CAPTURE_COMPLETE': { normal: 'AUDIO_INPUT_COMPLETE', covert: 'VOICE_CAPTURE_COMPLETE' },
+    'VOICE_CAPTURE_ERROR': { normal: 'AUDIO_INPUT_ERROR', covert: 'VOICE_CAPTURE_ERROR' },
+    'STEGO_PAYLOAD_DECRYPTED': { normal: 'PAYLOAD_DECRYPTED', covert: 'STEGO_PAYLOAD_DECRYPTED' },
+    'AES_KEY_MISMATCH': { normal: 'DECRYPTION_FAILED', covert: 'AES_KEY_MISMATCH' },
+    'STEGO_PACKET_ENCODED_AND_SENT': { normal: 'AUDIO_MESSAGE_SENT', covert: 'STEGO_PACKET_ENCODED_AND_SENT' },
+    'COVERT_PACKET_RECEIVED': { normal: 'AUDIO_MESSAGE_RECEIVED', covert: 'COVERT_PACKET_RECEIVED' },
+    'CARRIER_UPLINK_STABLE': { normal: 'MEDIA_STREAM_STABLE', covert: 'CARRIER_UPLINK_STABLE' },
+    'CARRIER_LOAD_SUCCESS': { normal: 'MEDIA_LOAD_SUCCESS', covert: 'CARRIER_LOAD_SUCCESS' },
+    'CARRIER_LOAD_FAILURE': { normal: 'MEDIA_LOAD_FAILURE', covert: 'CARRIER_LOAD_FAILURE' },
+    'SYSTEM_ERROR: PAYLOAD_MISSING': { normal: 'ERROR: AUDIO_DATA_CORRUPT', covert: 'SYSTEM_ERROR: PAYLOAD_MISSING' }
+};
+
+function updateAuditLogs() {
+    const isCovert = document.body.classList.contains('covert-active');
+    document.querySelectorAll('.audit-entry').forEach(entry => {
+        const code = entry.dataset.logCode;
+        if (code) {
+            const map = LOG_MAP[code];
+            const text = map ? (isCovert ? map.covert : map.normal) : code;
+            const timePart = entry.textContent.split(' | ')[0];
+            entry.textContent = `${timePart} | ${text}`;
+        }
+    });
+}
+
 function addToAuditLog(message) {
     if (!auditLogEl) return;
     const entry = document.createElement('div');
     entry.className = 'audit-entry';
-    entry.textContent = `${new Date().toLocaleTimeString()} | ${message}`;
+    entry.dataset.logCode = message;
+    
+    const isCovert = document.body.classList.contains('covert-active');
+    const map = LOG_MAP[message];
+    const text = map ? (isCovert ? map.covert : map.normal) : message;
+    
+    entry.textContent = `${new Date().toLocaleTimeString()} | ${text}`;
     auditLogEl.prepend(entry);
 }
 
@@ -275,7 +325,7 @@ const StegoEngine = {
     async encode(audioBlob, secretText) {
         if (!secretText) return audioBlob;
         
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioCtx = getAudioContext();
         const arrayBuffer = await audioBlob.arrayBuffer();
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         
@@ -312,7 +362,7 @@ const StegoEngine = {
     },
     // Main Decoder: Returns the hidden string from an audio blob
     async decode(audioBlob) {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioCtx = getAudioContext();
         const arrayBuffer = await audioBlob.arrayBuffer();
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         const channelData = audioBuffer.getChannelData(0);
@@ -477,6 +527,9 @@ function receive(packet) {
     wrapper.className = 'message-wrapper';
     wrapper.style.alignSelf = 'flex-start';
     wrapper.style.marginBottom = '20px';
+    if (packet.hidden_payload) {
+        wrapper.classList.add('stego-element');
+    }
 
     const senderLabel = document.createElement('div');
     senderLabel.className = 'sender-tag';
@@ -513,7 +566,6 @@ function receive(packet) {
         audio.load();
         card.appendChild(audio);
 
-        // FIX: Add progress-container so the DECRYPT_PAYLOAD click handler doesn't crash
         const progContainer = document.createElement('div');
         progContainer.className = 'progress-container';
         progContainer.style.display = 'none';
@@ -549,6 +601,9 @@ function renderMessage(payload, isMe) {
     wrapper.className = 'message-wrapper';
     wrapper.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
     wrapper.style.marginBottom = '20px';
+    if (payload.hidden_payload) {
+        wrapper.classList.add('stego-element');
+    }
 
     const senderLabel = document.createElement('div');
     senderLabel.className = 'sender-tag';
@@ -602,10 +657,8 @@ function renderMessage(payload, isMe) {
         decodeBtn.style.marginTop = '12px';
         decodeBtn.style.width = '100%';
         
-        // Handle received bits if present
         if (payload.hidden_payload) {
             card.dataset.payload = payload.hidden_payload;
-            // Removed redundant decode check for local performance optimization
         }
 
         if (payload.aes_key) {
@@ -791,8 +844,11 @@ carrierUpload.onchange = async (e) => {
     function addRow(dir, sender, payload, key) {
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+        if (payload) {
+            tr.className = 'stego-element';
+        }
         const col = dir === '↑' ? 'var(--vivid-magenta)' : 'var(--electric-cyan)';
-        tr.innerHTML = `<td style="padding:4px;color:#555;">${new Date().toLocaleTimeString()}</td><td style="padding:4px;color:${col};font-weight:bold;">${dir}</td><td style="padding:4px;color:var(--electric-cyan);max-width:60px;overflow:hidden;text-overflow:ellipsis;">${sender||'?'}</td><td style="padding:4px;color:#aaa;">${payload ? payload.length+'B' : '---'}</td><td style="padding:4px;color:#555;">${key ? key.substring(0,2)+'***' : '---'}</td>`;
+        tr.innerHTML = `<td style="padding:4px;color:#555;">${new Date().toLocaleTimeString()}</td><td style="padding:4px;color:${col};font-weight:bold;">${dir}</td><td style="padding:4px;color:var(--electric-cyan);max-width:60px;overflow:hidden;text-overflow:ellipsis;">${sender||'?'}</td><td style="padding:4px;color:#aaa;">${payload ? payload.length+'B' : '---'}</td><td class="stego-element" style="padding:4px;color:#555;">${key ? key.substring(0,2)+'***' : '---'}</td>`;
         tbody.insertBefore(tr, tbody.firstChild);
         while (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
     }
@@ -848,23 +904,42 @@ carrierUpload.onchange = async (e) => {
         let x = 0;
         for (let i = 0; i < buf.length; i++) {
             const bh = (buf[i] / 255) * H;
-            ctx.fillStyle = `hsl(${180 + (i / buf.length) * 160}, 100%, 55%)`;
+            const isCovert = document.body.classList.contains('covert-active');
+            ctx.fillStyle = isCovert 
+                ? `hsl(${320 + (i / buf.length) * 40}, 100%, 55%)` 
+                : `hsl(${180 + (i / buf.length) * 160}, 100%, 55%)`;
             ctx.fillRect(x, H - bh, bw, bh);
             x += bw + 1;
         }
         animFrame = requestAnimationFrame(draw);
     }
 
-    function stop() { if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; } resize(); ctx.clearRect(0, 0, canvas.width, canvas.height); if (statusEl) statusEl.textContent = '> NO_CARRIER_SIGNAL'; }
+    function stop() { 
+        if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; } 
+        boundEl = null; 
+        resize(); 
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        if (statusEl) statusEl.textContent = '> NO_CARRIER_SIGNAL'; 
+    }
 
     function attach(el) {
-        if (el === boundEl) return;
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!audioCtx) {
+            audioCtx = getAudioContext();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.connect(audioCtx.destination);
+        }
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        if (analyser) analyser.disconnect();
-        analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
-        try { sourceNode = audioCtx.createMediaElementSource(el); sourceNode.connect(analyser); } catch(e) {}
-        analyser.connect(audioCtx.destination);
+
+        if (!el._audioSourceNode) {
+            try {
+                el._audioSourceNode = audioCtx.createMediaElementSource(el);
+                el._audioSourceNode.connect(analyser);
+            } catch(e) {
+                console.error("MediaElementSource creation error:", e);
+            }
+        }
+        
         boundEl = el;
         if (statusEl) statusEl.textContent = '> CARRIER_SIGNAL_ACTIVE';
         if (animFrame) cancelAnimationFrame(animFrame);
@@ -909,5 +984,58 @@ carrierUpload.onchange = async (e) => {
     abortBtn.addEventListener('click', () => {
         clearInterval(timer); display.style.display = 'none'; minInput.style.display = ''; abortBtn.style.display = 'none'; armBtn.textContent = 'ARM'; armBtn.disabled = false;
         if (window.showToast) window.showToast('[ABORT] Self-destruct sequence cancelled.');
+    });
+})();
+
+// --- MODULE I: COVERT PROTOCOL CONTROLLER ---
+(function() {
+    const covertTrigger = document.getElementById('covert-logo-trigger');
+    if (!covertTrigger) return;
+    
+    covertTrigger.addEventListener('click', () => {
+        const isActive = document.body.classList.toggle('covert-active');
+        const overlay = document.getElementById('covert-handshake-overlay');
+        const payloadSec = document.querySelector('.payload-section');
+        const densityCard = document.getElementById('density-card');
+
+        if (overlay) {
+            overlay.classList.add('sweep');
+            setTimeout(() => {
+                overlay.classList.remove('sweep');
+            }, 1800);
+        }
+
+        const emptyIcon = document.getElementById('chat-empty-icon');
+        const emptyText = document.getElementById('chat-empty-text');
+        const emptySub = document.getElementById('chat-empty-sub');
+        const brandSub = document.getElementById('brand-sub-text');
+
+        if (isActive) {
+            if (payloadSec) payloadSec.style.display = 'flex';
+            if (densityCard) densityCard.style.display = 'block';
+            if (brandSub) brandSub.textContent = 'Hidden Messages · Inside Sound · Encrypted';
+            if (covertTrigger) covertTrigger.setAttribute('title', 'Disable Stego Uplink / Return to Normal Mode');
+            
+            if (emptyIcon) emptyIcon.textContent = '📶';
+            if (emptyText) emptyText.innerHTML = '<span style="color:#ff007f;text-shadow:0 0 10px rgba(255,0,127,0.5);">📶 COVERT STEGO PROTOCOL ACTIVE</span>';
+            if (emptySub) emptySub.textContent = 'Input secret message, attach audio carrier, and send to hide data.';
+
+            addToAuditLog('STEGO_PROTOCOL_ARMED');
+            updateAuditLogs();
+            if (window.showToast) window.showToast('📶 SECURE UPLINK INITIATED: COVERT PROTOCOL ACTIVE');
+        } else {
+            if (payloadSec) payloadSec.style.display = 'none';
+            if (densityCard) densityCard.style.display = 'none';
+            if (brandSub) brandSub.textContent = 'End-to-End Encrypted Secure Chat';
+            if (covertTrigger) covertTrigger.setAttribute('title', 'WhisperNet Logo');
+
+            if (emptyIcon) emptyIcon.textContent = '🔒';
+            if (emptyText) emptyText.textContent = 'This conversation is private and encrypted.';
+            if (emptySub) emptySub.textContent = 'Send a message to begin.';
+
+            addToAuditLog('STEGO_PROTOCOL_DISARMED');
+            updateAuditLogs();
+            if (window.showToast) window.showToast('📶 SECURE UPLINK TERMINATED: COVERT PROTOCOL DEACTIVATED');
+        }
     });
 })();

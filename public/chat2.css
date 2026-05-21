@@ -76,24 +76,49 @@ body {
 .header {
     position: relative; z-index: 100;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 24px;
-    height: 64px;
+    padding: 12px 24px;
+    min-height: 64px;
+    height: auto;
     background: rgba(4,8,15,0.95);
     border-bottom: 1px solid var(--border);
     backdrop-filter: blur(20px);
     flex-shrink: 0;
     box-shadow: 0 1px 40px rgba(0,200,255,0.07);
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .header-brand { display: flex; align-items: center; gap: 14px; }
 .brand-logo {
     position: relative; width: 40px; height: 40px;
     display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
+}
+.brand-logo:hover {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 10px var(--glow-blue));
+}
+.brand-logo:active {
+    transform: scale(0.95);
 }
 .brand-logo-img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+}
+.brand-logo .covert-status-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50% !important;
+    border: 2px solid var(--bg);
+    background: var(--blue);
+    animation: blink-dot 2.5s ease infinite;
+    z-index: 10;
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 .logo-ring {
     position: absolute; inset: 0; border-radius: 50%;
@@ -162,10 +187,11 @@ body {
 /* ── WORKSPACE ─────────────────────────────── */
 .workspace {
     display: grid;
-    grid-template-columns: 260px 1fr 270px;
+    grid-template-columns: 260px 1fr;
     gap: 12px; padding: 12px;
     flex: 1; min-height: 500px;
     position: relative; z-index: 1;
+    transition: grid-template-columns 0.6s cubic-bezier(0.19, 1, 0.22, 1);
 }
 .col { display: flex; flex-direction: column; gap: 10px; min-height: 400px; }
 
@@ -233,8 +259,8 @@ body {
 
 /* ── CHAT ──────────────────────────────────── */
 .chat-card { flex: 1; min-height: 0; }
-.chat-feed { padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2); }
-.chat-empty { margin: auto; text-align: center; opacity: 0.35; }
+.chat-feed { padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2); position: relative; }
+.chat-empty { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; opacity: 0.35; pointer-events: none; width: 100%; max-width: 320px; }
 .empty-icon { font-size: 36px; margin-bottom: 10px; }
 .empty-sub { font-size: 11px; margin-top: 4px; color: var(--dim); }
 
@@ -377,7 +403,7 @@ body {
 .clear-status { font-size: 9px; color: var(--green); margin-top: 6px; }
 
 /* ── BOTTOM ROW ─────────────────────────────── */
-.bottom-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; padding: 0 12px 12px; min-height: 240px; flex-shrink: 0; position: relative; z-index: 1; }
+.bottom-row { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0 12px 12px; min-height: 240px; flex-shrink: 0; position: relative; z-index: 1; transition: grid-template-columns 0.5s ease; }
 .bottom-card { height: 100%; }
 .live-val { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; margin-left: auto; }
 .live-val.blue { color: var(--blue); text-shadow: 0 0 10px var(--glow-blue); }
@@ -416,3 +442,412 @@ body {
 .toast-error { border-left-color: var(--red); }
 .toast-visible { transform: translateX(0); }
 .toast-icon { font-size: 14px; }
+
+/* ── RESPONSIVE MEDIA BREAKPOINTS ───────────── */
+
+/* --- Laptops and Small Desktops (max-width: 1200px) --- */
+@media (max-width: 1200px) {
+    .workspace {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
+    }
+    body.covert-active .workspace {
+        grid-template-columns: 1fr 280px !important;
+    }
+    
+    .col-left {
+        grid-column: span 2;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        min-height: auto;
+        order: 3; /* Push online roster & audit log underneath the active chat/vault */
+    }
+    
+    .col-center {
+        order: 1;
+        min-height: 500px;
+    }
+    
+    .col-right {
+        order: 2;
+        min-height: 500px;
+    }
+    
+    .bottom-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 0 10px 10px;
+    }
+    body.covert-active .bottom-row {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .bottom-card {
+        min-height: 240px;
+    }
+}
+
+/* --- Tablets & Horizontal Mobile (max-width: 992px) --- */
+@media (max-width: 992px) {
+    .header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 16px 20px;
+    }
+    
+    .header-chips {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .header-user {
+        width: 100%;
+        justify-content: center;
+        border-top: 1px solid var(--border);
+        padding-top: 10px;
+        margin-top: 4px;
+    }
+
+    .workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+    }
+    
+    .col {
+        width: 100% !important;
+        min-height: auto !important;
+    }
+    
+    .col-left {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        order: 3;
+    }
+    
+    .col-center {
+        order: 1;
+    }
+    
+    .col-right {
+        order: 2;
+    }
+    
+    .chat-card {
+        height: 60vh;
+        min-height: 480px;
+    }
+}
+
+/* --- Smartphones (max-width: 768px) --- */
+@media (max-width: 768px) {
+    body {
+        font-size: 12px;
+    }
+    
+    .header-brand {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .brand-title {
+        font-size: 18px;
+    }
+    
+    .col-left {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .bottom-row {
+        grid-template-columns: 1fr;
+        padding: 0 12px 12px;
+    }
+    
+    .bottom-card {
+        min-height: 200px;
+    }
+    
+    .twin-cards {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .compose-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn-send {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+    }
+}
+
+/* --- Small Mobile Screens (max-width: 480px) --- */
+@media (max-width: 480px) {
+    .payload-inputs {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .payload-key {
+        max-width: 100%;
+    }
+    
+    .media-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn-media {
+        width: 100%;
+    }
+    
+    .density-val {
+        font-size: 20px;
+    }
+}
+
+/* ── COVERT STEGO MODE & NEON ENVIRONMENTAL SHIFT ── */
+
+/* 1. Body Covert Mode Color variables */
+body.covert-active {
+    --blue: #ff007f;
+    --purple: #d946ef;
+    --green: #ff00aa;
+    --border: rgba(255, 0, 127, 0.22);
+    --border-hover: rgba(255, 0, 127, 0.6);
+    --glow-blue: rgba(255, 0, 127, 0.45);
+    --glow-purple: rgba(217, 70, 239, 0.45);
+    --surface: rgba(18, 5, 20, 0.92);
+    --surface2: rgba(26, 8, 30, 0.78);
+    --bg: #0b020c;
+    transition: background 0.8s ease, color 0.8s ease;
+}
+
+/* 2. Background animations speed and hue shift */
+body.covert-active .bg-grid {
+    background-image:
+        linear-gradient(rgba(255, 0, 127, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 0, 127, 0.06) 1px, transparent 1px);
+    animation: grid-drift 10s linear infinite; /* Faster speed for covert mode */
+}
+
+body.covert-active .bg-aurora {
+    background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 0, 127, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(217, 70, 239, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 50% 50%, rgba(255, 0, 170, 0.05) 0%, transparent 70%);
+    animation: aurora-shift 6s ease-in-out infinite alternate;
+}
+
+/* 3. Covert Switch ACTIVE status style */
+body.covert-active .covert-status-dot {
+    background: #ff007f;
+    animation: blink-dot-fast 0.6s ease infinite;
+}
+
+@keyframes blink-dot-fast {
+    0%, 100% { opacity: 1; box-shadow: 0 0 10px #ff007f; }
+    50% { opacity: 0.2; box-shadow: none; }
+}
+
+/* 4. Full-Screen Handshake Scanning Glitch Overlay */
+#covert-handshake-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: radial-gradient(circle at 44px 32px, rgba(255, 0, 127, 0.22) 0%, rgba(11, 2, 12, 0.96) 100%);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    pointer-events: none;
+    clip-path: circle(0% at 44px 32px);
+    transition: clip-path 1.4s cubic-bezier(0.19, 1, 0.22, 1), opacity 1.4s ease;
+    opacity: 0;
+}
+
+#covert-handshake-overlay.sweep {
+    opacity: 1;
+    clip-path: circle(150% at 44px 32px);
+    animation: overlay-fade-out 1.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes overlay-fade-out {
+    0% { opacity: 1; filter: brightness(1.3) contrast(1.1); }
+    75% { opacity: 1; }
+    100% { opacity: 0; filter: brightness(1) contrast(1); }
+}
+
+/* Slide animation for stego payload display */
+.payload-section {
+    animation: slideDownFade 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideDownFade {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideRightFade {
+    from { opacity: 0; transform: translateX(24px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 5. Secret Mode Feature Masking System */
+.covert-only {
+    display: none !important;
+}
+
+body.covert-active .covert-only {
+    display: block !important;
+}
+body.covert-active aside.covert-only,
+body.covert-active .col.covert-only,
+body.covert-active .payload-section.covert-only {
+    display: flex !important;
+}
+body.covert-active .chip.covert-only {
+    display: flex !important;
+}
+body.covert-active .decode-btn.covert-only {
+    display: block !important;
+}
+
+body.covert-active .workspace {
+    grid-template-columns: 260px 1fr 270px !important;
+}
+
+/* --- Dynamic stego-element masking --- */
+.stego-element {
+    display: none !important;
+}
+body.covert-active .stego-element {
+    display: block !important;
+}
+body.covert-active tr.stego-element {
+    display: table-row !important;
+}
+body.covert-active th.stego-element {
+    display: table-cell !important;
+}
+body.covert-active td.stego-element {
+    display: table-cell !important;
+}
+body.covert-active .progress-container.stego-element,
+body.covert-active .decrypt-key-container.stego-element {
+    display: none !important; /* Controlled inline by JS when triggered */
+}
+
+/* --- Double-Tap Override Classes --- */
+.force-show {
+    display: flex !important;
+}
+.force-show-block {
+    display: block !important;
+}
+
+
+/* --- Inline Cyberpunk Decrypt Prompt Styles --- */
+.decrypt-key-container {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    animation: slideDownFade 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.decrypt-key-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    color: var(--bright);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    outline: none;
+    transition: all 0.2s;
+}
+.decrypt-key-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 10px var(--glow-blue);
+}
+.btn-decrypt-submit {
+    padding: 8px 16px;
+    background: rgba(255, 0, 127, 0.1);
+    border: 1px solid rgba(255, 0, 127, 0.3);
+    color: #ff007f;
+    font-size: 10px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-decrypt-submit:hover {
+    background: #ff007f;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255,0,127,0.4);
+}
+
+/* Animations for Secret Mode modules */
+body.covert-active .col-right.covert-only {
+    animation: slideRightFade 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+body.covert-active .payload-section.covert-only {
+    animation: slideDownFade 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+body.covert-active .bottom-card.covert-only {
+    animation: slideUpFade 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+body.covert-active .chip.covert-only {
+    animation: slideDownFade 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+body.covert-active .covert-alert-banner.covert-only {
+    display: flex !important;
+    animation: slideDownFade 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+/* Grid layout transition for bottom-row in Secret Mode */
+body.covert-active .bottom-row {
+    grid-template-columns: repeat(4, 1fr) !important;
+}
+
+/* 6. Covert Secure Alert Banner */
+.covert-alert-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 0, 127, 0.04);
+    border-bottom: 1px solid rgba(255, 0, 127, 0.15);
+    padding: 10px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: #ff007f;
+    text-shadow: 0 0 5px rgba(255, 0, 127, 0.35);
+    box-shadow: inset 0 -5px 15px rgba(255, 0, 127, 0.02);
+}
+
+.covert-banner-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50% !important;
+    background: #ff007f;
+    animation: blink-dot-fast 0.8s ease infinite;
+    box-shadow: 0 0 8px #ff007f;
+}

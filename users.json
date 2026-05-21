@@ -23,5 +23,9 @@
   {
     "username": "newuser1",
     "password": "$2b$10$SpSuGrplbTiRi25Q0j8ptu3Pi5tWSCmaFOaadCbNjz9d3mWGvNayy"
+  },
+  {
+    "username": "Akshith",
+    "password": "$2b$10$1X7NWgIjhIerDdpV0B4VHeqKJqRJHp6Lx/XcE7RJjWJZYtzhVitda"
   }
 ]
