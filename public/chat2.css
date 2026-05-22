@@ -1002,3 +1002,36 @@ body.covert-active .bottom-row {
     transform: translateY(-1px);
 }
 
+/* ── SCROLLABLE COVERT SIDEBAR & STABLE HEIGHTS ── */
+.col-right {
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.col-right::-webkit-scrollbar {
+    width: 4px;
+}
+
+.col-right::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.col-right::-webkit-scrollbar-thumb {
+    background: rgba(255, 0, 127, 0.25);
+    border-radius: 4px;
+}
+
+.col-right::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 0, 127, 0.5);
+}
+
+#whisper-ai-card {
+    flex-shrink: 0;
+    min-height: 290px;
+}
+
+#file-vault-card {
+    flex-shrink: 0;
+    min-height: 180px;
+}
+
