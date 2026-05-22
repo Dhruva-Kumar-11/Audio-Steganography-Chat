@@ -182,6 +182,31 @@
 
         <!-- RIGHT: File Vault + Tools -->
         <aside class="col col-right covert-only">
+            <!-- WhisperAI Cyber Assistant Card -->
+            <div class="card card-flex" id="whisper-ai-card">
+                <div class="card-header">
+                    <div class="card-title-row">
+                        <div class="card-icon magenta">🤖</div>
+                        <h2 class="card-title">WhisperAI Console</h2>
+                        <span class="ai-status-pulse"></span>
+                    </div>
+                </div>
+                <div class="card-body terminal-body">
+                    <div id="ai-terminal-feed" class="terminal-feed scrollable"></div>
+                    <div class="terminal-chips">
+                        <button class="chip-btn" data-cmd="/help">/help</button>
+                        <button class="chip-btn" data-cmd="/stego">/stego</button>
+                        <button class="chip-btn" data-cmd="/density">/density</button>
+                        <button class="chip-btn" data-cmd="/mask">/mask</button>
+                        <button class="chip-btn" data-cmd="/vault">/vault</button>
+                    </div>
+                    <form id="ai-terminal-form" class="terminal-form" onsubmit="event.preventDefault();">
+                        <input type="text" id="ai-terminal-input" placeholder="Ask WhisperAI or type a command..." autocomplete="off" class="terminal-input">
+                        <button type="submit" id="ai-terminal-btn" class="btn-terminal-submit">RUN</button>
+                    </form>
+                </div>
+            </div>
+
             <div class="card card-flex">
                 <div class="card-header">
                     <div class="card-title-row">
@@ -328,7 +353,10 @@
     <script src="script.js"></script>
     <script>
         // User identity
-        const user = localStorage.getItem('username') || 'Anonymous';
+        const user = localStorage.getItem('username');
+        if (!user) {
+            window.location.href = '/';
+        }
         const displayName = user.charAt(0).toUpperCase() + user.slice(1).toLowerCase();
         document.getElementById('user-display').textContent = displayName;
         const avatarEl = document.getElementById('user-avatar-char');

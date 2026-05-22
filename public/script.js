@@ -50,7 +50,18 @@ async function startRecording() {
 
     try {
         recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(recordingStream);
+        
+        let recorderMime = '';
+        const types = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav', 'audio/aac'];
+        for (const t of types) {
+            if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
+                recorderMime = t;
+                break;
+            }
+        }
+        
+        const options = recorderMime ? { mimeType: recorderMime } : {};
+        mediaRecorder = new MediaRecorder(recordingStream, options);
         audioChunks = [];
 
         mediaRecorder.ondataavailable = (event) => {
@@ -58,8 +69,10 @@ async function startRecording() {
         };
 
         mediaRecorder.onstop = () => {
-            currentAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            selectedCarrierFile = new File([currentAudioBlob], `recording_${Date.now()}.webm`, { type: 'audio/webm' });
+            const actualMime = mediaRecorder.mimeType || 'audio/webm';
+            const ext = actualMime.split('/')[1]?.split(';')[0] || 'webm';
+            currentAudioBlob = new Blob(audioChunks, { type: actualMime });
+            selectedCarrierFile = new File([currentAudioBlob], `recording_${Date.now()}.${ext}`, { type: actualMime });
             selectedBlobUrl = URL.createObjectURL(currentAudioBlob);
             if (previewPlayer && previewContainer) {
                 previewContainer.style.display = 'flex';
@@ -134,20 +147,13 @@ socket.on('typing', (data) => {
             indicator.style.display = 'none';
         }
     }
-});
-
-// ... rest of script until click listener ...// Event Delegation for Decrypt interactions
+});// ... rest of script until click listener ...// Event Delegation for Decrypt interactions
 window.addEventListener("click", async (e) => {
     if (e.target.classList.contains('decode-btn')) {
         const card = e.target.closest('.message');
         const secretText = card.dataset.payload;
         const correctKey = card.dataset.key || '';
-
-        if (!secretText) {
-            addToAuditLog("SYSTEM_ERROR: PAYLOAD_MISSING");
-            if(window.showToast) window.showToast("SYSTEM_ERROR: PAYLOAD_MISSING", true);
-            return;
-        }
+        const audioEl = card.querySelector('audio');
 
         // Visual: Decrypting Progress Bar
         const progressContainer = card.querySelector('.progress-container');
@@ -167,7 +173,20 @@ window.addEventListener("click", async (e) => {
             progressBar.style.width = '100%';
         }
 
-        // Wait 1.5s for "Scanning" effect
+        // Real steganography decoding directly from the audio waveform
+        let decodedText = null;
+        if (audioEl && audioEl.src) {
+            try {
+                addToAuditLog("EXTRACTING_LSB_PAYLOAD...");
+                const response = await fetch(audioEl.src);
+                const audioBlob = await response.blob();
+                decodedText = await StegoEngine.decode(audioBlob);
+            } catch (err) {
+                console.error("STEGO_DECODE_ERR:", err);
+            }
+        }
+
+        // Wait 1.5s total to match the scanning scanning animation
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         if (progressContainer) {
@@ -179,6 +198,15 @@ window.addEventListener("click", async (e) => {
         }
         e.target.textContent = originalText;
         e.target.disabled = false;
+
+        // Fallback to metadata payload if real stego extraction failed/empty
+        const finalSecretText = decodedText || secretText;
+
+        if (!finalSecretText) {
+            addToAuditLog("SYSTEM_ERROR: PAYLOAD_MISSING");
+            if(window.showToast) window.showToast("SYSTEM_ERROR: PAYLOAD_MISSING", true);
+            return;
+        }
 
         // Ask for key only if one was set; skip prompt for unprotected payloads
         const pass = correctKey ? prompt('Enter decryption key:') : '';
@@ -200,7 +228,7 @@ window.addEventListener("click", async (e) => {
             reveal.style.position = 'relative';
             
             const msgSpan = document.createElement('span');
-            msgSpan.textContent = `> INTERCEPTED: ${secretText}`;
+            msgSpan.textContent = `> INTERCEPTED: ${finalSecretText}`;
             reveal.appendChild(msgSpan);
 
             const timerSpan = document.createElement('span');
@@ -321,13 +349,28 @@ const StegoEngine = {
         }
         return str;
     },
+    // Helper: Decode Audio data without resampling
+    async decodeAudioExactly(audioBlob) {
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        let sampleRate = 44100;
+        
+        // Parse WAV sample rate from header if available
+        if (arrayBuffer.byteLength >= 44) {
+            const view = new DataView(arrayBuffer);
+            if (view.getUint32(0, false) === 0x52494646 && // "RIFF"
+                view.getUint32(8, false) === 0x57415645) { // "WAVE"
+                sampleRate = view.getUint32(24, true);
+            }
+        }
+        
+        const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, sampleRate);
+        return await offlineCtx.decodeAudioData(arrayBuffer);
+    },
     // Main Encoder: Returns a WAV Blob with hidden data
     async encode(audioBlob, secretText) {
         if (!secretText) return audioBlob;
         
-        const audioCtx = getAudioContext();
-        const arrayBuffer = await audioBlob.arrayBuffer();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        const audioBuffer = await this.decodeAudioExactly(audioBlob);
         
         // We use the first channel for stego
         const channelData = audioBuffer.getChannelData(0);
@@ -362,33 +405,36 @@ const StegoEngine = {
     },
     // Main Decoder: Returns the hidden string from an audio blob
     async decode(audioBlob) {
-        const audioCtx = getAudioContext();
-        const arrayBuffer = await audioBlob.arrayBuffer();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        const channelData = audioBuffer.getChannelData(0);
-        
-        // 1. Read 32-bit length header
-        let lengthBits = '';
-        for (let i = 0; i < 32; i++) {
-            let sample = Math.max(-1, Math.min(1, channelData[i]));
-            let intSample = Math.round(sample < 0 ? sample * 32768 : sample * 32767);
-            lengthBits += (Math.abs(intSample) % 2).toString();
+        try {
+            const audioBuffer = await this.decodeAudioExactly(audioBlob);
+            const channelData = audioBuffer.getChannelData(0);
+            
+            // 1. Read 32-bit length header
+            let lengthBits = '';
+            for (let i = 0; i < 32; i++) {
+                let sample = Math.max(-1, Math.min(1, channelData[i]));
+                let intSample = Math.round(sample < 0 ? sample * 32768 : sample * 32767);
+                lengthBits += (Math.abs(intSample) & 1).toString();
+            }
+            const dataLength = parseInt(lengthBits, 2);
+            
+            if (isNaN(dataLength) || dataLength <= 0 || dataLength > (channelData.length - 32)) {
+                return null; // No valid stego header found
+            }
+            
+            // 2. Read data bits
+            let dataBits = '';
+            for (let i = 32; i < 32 + dataLength; i++) {
+                let sample = Math.max(-1, Math.min(1, channelData[i]));
+                let intSample = Math.round(sample < 0 ? sample * 32768 : sample * 32767);
+                dataBits += (Math.abs(intSample) & 1).toString();
+            }
+            
+            return this.bitsToStr(dataBits);
+        } catch (e) {
+            console.error("StegoEngine decode error:", e);
+            return null;
         }
-        const dataLength = parseInt(lengthBits, 2);
-        
-        if (isNaN(dataLength) || dataLength <= 0 || dataLength > channelData.length) {
-            return null; // No valid stego header found
-        }
-        
-        // 2. Read data bits
-        let dataBits = '';
-        for (let i = 32; i < 32 + dataLength; i++) {
-            let sample = Math.max(-1, Math.min(1, channelData[i]));
-            let intSample = Math.round(sample < 0 ? sample * 32768 : sample * 32767);
-            dataBits += (Math.abs(intSample) % 2).toString();
-        }
-        
-        return this.bitsToStr(dataBits);
     },
     // Helper: Convert AudioBuffer to lossless WAV Blob
     audioBufferToWavBlob(buffer) {
@@ -487,7 +533,7 @@ async function transmit(message, audioBlob) {
             const stegoBlob = await StegoEngine.encode(audioBlob, capturedPayload);
             // Step 2: Convert to base64 for transmission
             const reader = new FileReader();
-            reader.onload = () => sendPacket(reader.result, 'audio/wav');
+            reader.onload = () => sendPacket(reader.result, stegoBlob.type);
             reader.readAsDataURL(stegoBlob);
         } catch (err) {
             console.error("STEGO_ENCODE_ERROR:", err);
@@ -591,9 +637,15 @@ function receive(packet) {
         }
     }
 
+    // Capture scroll state before appending
+    const isAtBottom = chatFeed.scrollHeight - chatFeed.scrollTop - chatFeed.clientHeight < 100;
+
     wrapper.appendChild(card);
     chatFeed.appendChild(wrapper);
-    chatFeed.scrollTop = chatFeed.scrollHeight;
+
+    if (isAtBottom) {
+        chatFeed.scrollTop = chatFeed.scrollHeight;
+    }
 }
 
 function renderMessage(payload, isMe) {
@@ -673,9 +725,15 @@ function renderMessage(payload, isMe) {
         }
     }
 
+    // Capture scroll state before appending
+    const isAtBottom = chatFeed.scrollHeight - chatFeed.scrollTop - chatFeed.clientHeight < 100;
+
     wrapper.appendChild(card);
     chatFeed.appendChild(wrapper);
-    chatFeed.scrollTop = chatFeed.scrollHeight;
+
+    if (isMe || isAtBottom) {
+        chatFeed.scrollTop = chatFeed.scrollHeight;
+    }
 }
 
 // --- 6. INPUT HANDLERS ---
@@ -740,7 +798,15 @@ carrierUpload.onchange = async (e) => {
 
 // --- MODULE B: AGENT ROSTER ---
 (function() {
-    socket.emit('register-agent', { username });
+    // Re-register agent on connection or reconnection
+    socket.on('connect', () => {
+        socket.emit('register-agent', { username });
+    });
+
+    if (socket.connected) {
+        socket.emit('register-agent', { username });
+    }
+
     socket.on('agent-roster', (roster) => {
         const list = document.getElementById('agent-roster-list');
         if (!list) return;
@@ -784,7 +850,13 @@ carrierUpload.onchange = async (e) => {
     if (!btn) return;
     btn.addEventListener('click', () => {
         if (!confirm('CONFIRM: PURGE ALL INTERFACE DATA?')) return;
-        if (chatFeed) chatFeed.innerHTML = '';
+        if (chatFeed) {
+            chatFeed.querySelectorAll('.message-wrapper').forEach(el => el.remove());
+            const emptyEl = chatFeed.querySelector('.chat-empty');
+            if (emptyEl) emptyEl.style.display = '';
+        }
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) indicator.style.display = 'none';
         if (auditLogEl) auditLogEl.innerHTML = '';
         if (vaultList) vaultList.innerHTML = '';
         const txBody = document.getElementById('tx-log-body');
@@ -967,7 +1039,13 @@ carrierUpload.onchange = async (e) => {
     let timer = null, secs = 0;
     function fmt(s) { return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
     function purge() {
-        if (chatFeed) chatFeed.innerHTML = '';
+        if (chatFeed) {
+            chatFeed.querySelectorAll('.message-wrapper').forEach(el => el.remove());
+            const emptyEl = chatFeed.querySelector('.chat-empty');
+            if (emptyEl) emptyEl.style.display = '';
+        }
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) indicator.style.display = 'none';
         if (auditLogEl) auditLogEl.innerHTML = '';
         if (vaultList) vaultList.innerHTML = '';
         const tb = document.getElementById('tx-log-body'); if (tb) tb.innerHTML = '';
@@ -1038,4 +1116,264 @@ carrierUpload.onchange = async (e) => {
             if (window.showToast) window.showToast('📶 SECURE UPLINK TERMINATED: COVERT PROTOCOL DEACTIVATED');
         }
     });
+})();
+
+// --- MODULE J: WHISPER_AI COVERT CONSOLE ASSISTANT ---
+(function() {
+    const aiFeed = document.getElementById('ai-terminal-feed');
+    const aiForm = document.getElementById('ai-terminal-form');
+    const aiInput = document.getElementById('ai-terminal-input');
+    const chipBtns = document.querySelectorAll('.terminal-chips .chip-btn');
+
+    if (!aiFeed || !aiForm || !aiInput) return;
+
+    // Premium typewriting delayed text print
+    function printAI(text, isHTML = false) {
+        const msg = document.createElement('div');
+        msg.className = 'terminal-msg ai';
+        msg.innerHTML = '<div class="ai-header">> WHISPER_AI:</div>';
+        
+        const contentSpan = document.createElement('span');
+        msg.appendChild(contentSpan);
+        aiFeed.appendChild(msg);
+        aiFeed.scrollTop = aiFeed.scrollHeight;
+
+        let i = 0;
+        const speed = 12; // fast typewriting speed in ms
+
+        return new Promise((resolve) => {
+            if (isHTML) {
+                contentSpan.innerHTML = text;
+                aiFeed.scrollTop = aiFeed.scrollHeight;
+                resolve();
+            } else {
+                function type() {
+                    if (i < text.length) {
+                        contentSpan.textContent += text.charAt(i);
+                        i++;
+                        aiFeed.scrollTop = aiFeed.scrollHeight;
+                        setTimeout(type, speed);
+                    } else {
+                        resolve();
+                    }
+                }
+                type();
+            }
+        });
+    }
+
+    function printUser(text) {
+        const msg = document.createElement('div');
+        msg.className = 'terminal-msg user';
+        msg.textContent = `> AGENT: ${text}`;
+        aiFeed.appendChild(msg);
+        aiFeed.scrollTop = aiFeed.scrollHeight;
+    }
+
+    // Dynamic State Scanner for Context-Aware Answers
+    function getLiveUIContext() {
+        const secretText = secretInput ? secretInput.value : '';
+        const bitCount = secretText.length * 8;
+        
+        let carrierSize = 0;
+        const carrierEl = document.getElementById('carrier-upload');
+        if (carrierEl && carrierEl.files[0]) {
+            carrierSize = carrierEl.files[0].size;
+        }
+
+        // Live Traffic Mask State
+        const noiseStatusText = document.getElementById('noise-status');
+        const noiseCountText = document.getElementById('noise-count');
+        const isMasking = noiseStatusText && noiseStatusText.textContent.includes('ACTIVE');
+        const decoyCount = noiseCountText ? noiseCountText.textContent : '0';
+
+        // Live Vault List State
+        const vaultItems = document.querySelectorAll('#vault-list .vault-item');
+        const vaultCount = vaultItems ? vaultItems.length : 0;
+
+        return {
+            secretText,
+            bitCount,
+            carrierSize,
+            isMasking,
+            decoyCount,
+            vaultCount
+        };
+    }
+
+    // Main AI Command & Natural Q&A Processor
+    async function processAIQuery(rawQuery) {
+        const query = rawQuery.trim().toLowerCase();
+        const ctx = getLiveUIContext();
+
+        if (query === '/help') {
+            await printAI(
+                "WhisperAI Secure Commands:\n" +
+                "• /stego    - Explain LSB Steganography & verify active payload bits.\n" +
+                "• /density  - View exact capacity metrics of your carrier file.\n" +
+                "• /mask     - Audit decoy flood status of the network masking layer.\n" +
+                "• /vault    - Analyze carrier audio files stored in your safe vault.\n" +
+                "--------------------------------------------------\n" +
+                "You can also ask normal questions! Try typing 'How do I hide a message?' or 'Is my traffic secure?'",
+                false
+            );
+        } 
+        else if (query === '/stego' || query.includes('stego') || query.includes('steganography')) {
+            let response = "SYSTEM UPLINK // LSB STEGANOGRAPHY ENGINE\n" +
+                "Least Significant Bit (LSB) Steganography works by substituting the lowest bit of each digital audio sample with secret message bits. Because changing the LSB causes only a tiny wave change, the audio sounds identical to human ears!\n\n" +
+                "LIVE CONTEXT SCANNER:\n";
+            
+            if (ctx.bitCount > 0) {
+                response += `> Currently configured secret payload size is: ${ctx.bitCount} bits (${ctx.secretText.length} characters).\n`;
+            } else {
+                response += `> Currently configured secret payload: NONE (Type a message in 'Secret Message' first).\n`;
+            }
+
+            if (ctx.carrierSize > 0) {
+                response += `> Current audio carrier is loaded: YES (${ctx.carrierSize} bytes). You are fully prepared to hide data!`;
+            } else {
+                response += `> Current audio carrier is loaded: NO (Please click 'Attach Audio' or 'Record Voice' in the composer to bind a carrier!).`;
+            }
+            await printAI(response);
+        }
+        else if (query === '/density' || query.includes('density') || query.includes('capacity') || query.includes('payload')) {
+            let response = "SYSTEM UPLINK // PAYLOAD DENSITY METRICS\n" +
+                "Message Density is calculated as the ratio of secret bits to carrier bytes. High density (>50%) changes too many LSBs and could degrade audio sound quality, increasing detection risks.\n\n" +
+                "LIVE CONTEXT SCANNER:\n" +
+                `• Secret payload: ${ctx.bitCount} bits\n` +
+                `• Audio carrier: ${ctx.carrierSize} bytes\n`;
+
+            if (ctx.carrierSize > 0) {
+                const density = ((ctx.bitCount / ctx.carrierSize) * 100).toFixed(2);
+                response += `> Computed stego density: ${density}%\n`;
+                if (density > 50) {
+                    response += "⚠️ WARNING: Stego density is extremely high! Audio degradation possible. Shorten message or use a larger audio carrier.";
+                } else {
+                    response += "💡 SAFE RATIO: Payload is highly covert and completely imperceptible.";
+                }
+            } else {
+                response += "> Stego density: 0.0%\n💡 Please choose a carrier audio file and type your secret message to calculate real-time density.";
+            }
+            await printAI(response);
+        }
+        else if (query === '/mask' || query.includes('mask') || query.includes('traffic') || query.includes('decoy') || query.includes('noise')) {
+            let response = "SYSTEM UPLINK // TRAFFIC MASKING LAYER\n" +
+                "To prevent an eavesdropper from doing timing attacks, the Traffic Mask continuously floods the WebSocket pipe with random decoy packets every 2-5 seconds, burying real messages in background noise.\n\n" +
+                "LIVE CONTEXT SCANNER:\n";
+
+            if (ctx.isMasking) {
+                response += `⚡ STATUS: ACTIVE - FLOODING CONDUIT\n` +
+                    `> Decoy packets sent in this session: ${ctx.decoyCount}\n` +
+                    `> Covert protection level: MAXIMUM (Traffic patterns are fully masked).`;
+            } else {
+                response += `💤 STATUS: INACTIVE\n` +
+                    `> Decoy packets sent: 0\n` +
+                    `> Covert protection level: NORMAL\n` +
+                    `💡 Action: Click the 'Start Masking' button in the 'Traffic Mask' bottom panel to begin flooding decoys.`;
+            }
+            await printAI(response);
+        }
+        else if (query === '/vault' || query.includes('vault') || query.includes('file') || query.includes('download')) {
+            let response = "SYSTEM UPLINK // FILE VAULT REGISTRY\n" +
+                "The File Vault holds clean download anchors for all stego-encoded audio files exchanged during this session. This separates secure carrier wavs from standard chat assets.\n\n" +
+                "LIVE CONTEXT SCANNER:\n";
+
+            if (ctx.vaultCount > 0) {
+                response += `> Files in vault: ${ctx.vaultCount}\n` +
+                    `> Active Safe Storage: YES\n` +
+                    `💡 You can download and save these files safely. Use the DECRYPT_PAYLOAD button in the chat box to read their hidden content at any time.`;
+            } else {
+                response += `> Files in vault: 0\n` +
+                    `> Active Safe Storage: EMPTY\n` +
+                    `💡 Stego carrier files will automatically register here as soon as you send or receive an audio packet containing a secret payload.`;
+            }
+            await printAI(response);
+        }
+        else if (query.includes('hi') || query.includes('hello') || query.includes('hey') || query.includes('help')) {
+            await printAI(
+                "Greetings, Agent. I am the WhisperAI Secure Companion.\n" +
+                "I scan your live interface context to guide you through LSB steganography and traffic security. Type /help to see all commands!"
+            );
+        }
+        else if (query.includes('hide') || query.includes('send') || query.includes('embed') || query.includes('how to')) {
+            await printAI(
+                "STEP-BY-STEP: HOW TO HIDE A SECRET MESSAGE\n" +
+                "1. Type your confidential message inside the 'Secret Message' input.\n" +
+                "2. (Optional) Provide a passcode in the 'Password / Key' field to encrypt the payload with AES.\n" +
+                "3. Attach a carrier audio file by clicking 'Attach Audio' or click 'Record Voice' to record your microphone.\n" +
+                "4. Type a normal cover text in the main composer box (e.g., 'Check this out!') and click Send.\n" +
+                "The stego engine will automatically blend the secret bits into the audio carrier and transmit it safely!"
+            );
+        }
+        else if (query.includes('decrypt') || query.includes('extract') || query.includes('decode') || query.includes('read')) {
+            await printAI(
+                "STEP-BY-STEP: HOW TO EXTRACT A HIDDEN PAYLOAD\n" +
+                "1. Look at the chat feed for messages containing an audio player labeled 'ENCRYPTED_DATA_PACKET'.\n" +
+                "2. Click the 'DECRYPT_PAYLOAD' button attached to the card.\n" +
+                "3. If a passcode was set, you will be prompted to enter it. Otherwise, decryption happens instantly!\n" +
+                "The engine will fetch the audio bytes, scan the least significant bits, and reveal the secret payload."
+            );
+        }
+        else if (query.includes('key') || query.includes('password') || query.includes('aes') || query.includes('lock')) {
+            await printAI(
+                "SECURITY ADVISORY // PAYLOAD LOCKS:\n" +
+                "Stego keys add a second layer of defense. Even if someone discovers stego-encoding in your audio file, they cannot parse the characters without the correct AES key. The password field is located inside the stego composer panel."
+            );
+        }
+        else if (query.includes('clear') || query.includes('purge') || query.includes('timer') || query.includes('destruct')) {
+            await printAI(
+                "DECONSTRUCTION UTILITIES // SELF DESTRUCT:\n" +
+                "• Auto Delete: Click 'Arm' in the sidebar to trigger a localized interface purge when the timer runs out.\n" +
+                "• Shred Everything: Click 'Clear Everything' to immediately wipe the chat feed, transaction database, and session history from this machine."
+            );
+        }
+        else {
+            // Smart cyberpunk helper fallback
+            await printAI(
+                `Unrecognized command/keyword: "${rawQuery}"\n` +
+                "Agent, I can answer questions regarding:\n" +
+                "• Steganography (LSB, bits, audio files)\n" +
+                "• Density ratios (bits vs carrier bytes)\n" +
+                "• Traffic masking (decoys, timings)\n" +
+                "• Keys and decoding hidden payloads.\n\n" +
+                "Type /help to inspect the available Secure Commands roster."
+            );
+        }
+    }
+
+    // Form submit listener
+    aiForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const text = aiInput.value.trim();
+        if (!text) return;
+
+        aiInput.value = '';
+        printUser(text);
+        
+        // Brief cyber processing delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await processAIQuery(text);
+    };
+
+    // Chip-click listener
+    chipBtns.forEach(btn => {
+        btn.onclick = async () => {
+            const cmd = btn.getAttribute('data-cmd');
+            printUser(cmd);
+            await new Promise(resolve => setTimeout(resolve, 300));
+            await processAIQuery(cmd);
+        };
+    });
+
+    // Boot-up message
+    setTimeout(async () => {
+        await printAI(
+            "==========================================\n" +
+            "🔒 SYSTEM UPLINK SECURE // WHISPER_AI ONLINE\n" +
+            "WhisperAI Terminal Client v1.0.4 Loaded Successfully.\n" +
+            "==========================================\n" +
+            "Ready to assist you with secure steganography and traffic masking.\n" +
+            "Click a command chip or type /help to begin."
+        );
+    }, 1000);
 })();

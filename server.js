@@ -18,10 +18,15 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const USERS_FILE = path.join(__dirname, 'users.json');
 let isUsingMongoDB = false;
+let localUsersInMemory = [];
 
-// Initialize local users file if it doesn't exist
-if (!fs.existsSync(USERS_FILE)) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify([]));
+// Initialize local users file if it doesn't exist (gracefully fallback on read-only system)
+try {
+    if (!fs.existsSync(USERS_FILE)) {
+        fs.writeFileSync(USERS_FILE, JSON.stringify([]));
+    }
+} catch (e) {
+    console.log("[WARNING] Could not write to local filesystem. Using In-Memory fallback storage for users.");
 }
 
 // 1. MongoDB Connection (Local Fallback)
@@ -66,15 +71,33 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Helper for JSON storage
+// Helper for JSON storage (handles read-only systems safely)
 function getLocalUsers() {
-    return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    try {
+        if (fs.existsSync(USERS_FILE)) {
+            const fileData = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+            // Merge file data with in-memory users to avoid losing registrations
+            fileData.forEach(fu => {
+                if (fu && fu.username && !localUsersInMemory.some(u => u.username === fu.username)) {
+                    localUsersInMemory.push(fu);
+                }
+            });
+        }
+    } catch (e) {
+        console.log("[WARNING] Reading local users file failed:", e.message);
+    }
+    return localUsersInMemory;
 }
 
 function saveLocalUser(user) {
-    const users = getLocalUsers();
-    users.push(user);
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    if (user && user.username && !localUsersInMemory.some(u => u.username === user.username)) {
+        localUsersInMemory.push(user);
+    }
+    try {
+        fs.writeFileSync(USERS_FILE, JSON.stringify(localUsersInMemory, null, 2));
+    } catch (e) {
+        console.log("[WARNING] Could not save user to users.json on read-only system. Kept in memory.");
+    }
 }
 
 // 4. Registration Route
@@ -144,9 +167,11 @@ app.post('/api/login', async (req, res) => {
 const agentRoster = new Map(); // MODULE_B: tracks socket.id -> username
 
 io.on('connection', (socket) => {
-    // Update user count for all clients immediately upon connection
-    io.emit('user-count', io.engine.clientsCount);
-    console.log(`AGENT_CONNECTED. TOTAL_ACTIVE: ${io.engine.clientsCount}`);
+    // Send current unique user count and roster to the newly connected socket
+    const uniqueAgents = Array.from(new Set(agentRoster.values()));
+    socket.emit('user-count', uniqueAgents.length);
+    socket.emit('agent-roster', uniqueAgents);
+    console.log(`AGENT_CONNECTED. SOCKET_ID: ${socket.id}`);
 
     socket.on('audio-data', (data) => {
         io.emit('receive-audio', data);
@@ -174,7 +199,10 @@ io.on('connection', (socket) => {
     socket.on('register-agent', (data) => {
         if (data && data.username) {
             agentRoster.set(socket.id, data.username);
-            io.emit('agent-roster', Array.from(agentRoster.values()));
+            const unique = Array.from(new Set(agentRoster.values()));
+            io.emit('agent-roster', unique);
+            io.emit('user-count', unique.length);
+            console.log(`AGENT_REGISTERED: ${data.username}. TOTAL_ACTIVE: ${unique.length}`);
         }
     });
 
@@ -188,10 +216,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        io.emit('user-count', io.engine.clientsCount);
-        console.log(`AGENT_DISCONNECTED. TOTAL_ACTIVE: ${io.engine.clientsCount}`);
         // MODULE_B: Remove from roster on disconnect
         agentRoster.delete(socket.id);
-        io.emit('agent-roster', Array.from(agentRoster.values()));
+        const unique = Array.from(new Set(agentRoster.values()));
+        io.emit('agent-roster', unique);
+        io.emit('user-count', unique.length);
+        console.log(`AGENT_DISCONNECTED. TOTAL_ACTIVE: ${unique.length}`);
     });
 });
