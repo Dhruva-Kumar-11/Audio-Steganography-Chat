@@ -182,30 +182,6 @@
 
         <!-- RIGHT: File Vault + Tools -->
         <aside class="col col-right covert-only">
-            <!-- WhisperAI Cyber Assistant Card -->
-            <div class="card card-flex" id="whisper-ai-card">
-                <div class="card-header">
-                    <div class="card-title-row">
-                        <div class="card-icon magenta">🤖</div>
-                        <h2 class="card-title">WhisperAI Console</h2>
-                        <span class="ai-status-pulse"></span>
-                    </div>
-                </div>
-                <div class="card-body terminal-body">
-                    <div id="ai-terminal-feed" class="terminal-feed scrollable"></div>
-                    <div class="terminal-chips">
-                        <button class="chip-btn" data-cmd="/help">/help</button>
-                        <button class="chip-btn" data-cmd="/stego">/stego</button>
-                        <button class="chip-btn" data-cmd="/density">/density</button>
-                        <button class="chip-btn" data-cmd="/mask">/mask</button>
-                        <button class="chip-btn" data-cmd="/vault">/vault</button>
-                    </div>
-                    <form id="ai-terminal-form" class="terminal-form" onsubmit="event.preventDefault();">
-                        <input type="text" id="ai-terminal-input" placeholder="Ask WhisperAI or type a command..." autocomplete="off" class="terminal-input">
-                        <button type="submit" id="ai-terminal-btn" class="btn-terminal-submit">RUN</button>
-                    </form>
-                </div>
-            </div>
 
             <div class="card card-flex" id="file-vault-card">
                 <div class="card-header">
@@ -348,6 +324,46 @@
     </div>
 
     <div id="toast-container"></div>
+
+    <!-- ═══ FLOATING AI AGENT ORB ════════════════════════════ -->
+    <div id="floating-ai-orb" class="floating-ai-orb" title="Consult WhisperNet AI Companion">
+        <div class="orb-halo"></div>
+        <div class="orb-halo-inner"></div>
+        <div class="orb-content">🤖</div>
+        <span class="orb-pulse"></span>
+    </div>
+
+    <!-- ═══ SLIDE-OUT AI COMPANION DRAWER ════════════════════ -->
+    <div id="ai-drawer" class="ai-drawer">
+        <div class="drawer-header">
+            <div class="drawer-title-row">
+                <div class="drawer-icon">🤖</div>
+                <div class="drawer-title-col">
+                    <h2 class="drawer-title">WhisperNet AI Assistant</h2>
+                    <span class="drawer-subtitle">Dynamic Operations Guide</span>
+                </div>
+            </div>
+            <button id="close-drawer-btn" class="close-drawer-btn" title="Close Companion Panel">×</button>
+        </div>
+        
+        <div class="drawer-body">
+            <div id="ai-terminal-feed" class="terminal-feed scrollable"></div>
+            
+            <div class="terminal-chips">
+                <button class="chip-btn" data-cmd="/help">/help</button>
+                <button class="chip-btn" data-cmd="/stego">/stego</button>
+                <button class="chip-btn" data-cmd="/density">/density</button>
+                <button class="chip-btn" data-cmd="/mask">/mask</button>
+                <button class="chip-btn" data-cmd="/vault">/vault</button>
+                <button class="chip-btn" data-cmd="/codebase">/codebase</button>
+            </div>
+            
+            <form id="ai-terminal-form" class="terminal-form" onsubmit="event.preventDefault();">
+                <input type="text" id="ai-terminal-input" placeholder="Ask WhisperNet AI or type a command..." autocomplete="off" class="terminal-input">
+                <button type="submit" id="ai-terminal-btn" class="btn-terminal-submit">RUN</button>
+            </form>
+        </div>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>

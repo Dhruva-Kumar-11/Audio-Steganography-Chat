@@ -1118,7 +1118,7 @@ carrierUpload.onchange = async (e) => {
     });
 })();
 
-// --- MODULE J: WHISPER_AI COVERT CONSOLE ASSISTANT ---
+// --- MODULE J: WHISPERNET_AI COVERT CONSOLE ASSISTANT ---
 (function() {
     const aiFeed = document.getElementById('ai-terminal-feed');
     const aiForm = document.getElementById('ai-terminal-form');
@@ -1131,7 +1131,7 @@ carrierUpload.onchange = async (e) => {
     function printAI(text, isHTML = false) {
         const msg = document.createElement('div');
         msg.className = 'terminal-msg ai';
-        msg.innerHTML = '<div class="ai-header">> WHISPER_AI:</div>';
+        msg.innerHTML = '<div class="ai-header">> WHISPERNET_AI:</div>';
         
         const contentSpan = document.createElement('span');
         msg.appendChild(contentSpan);
@@ -1201,26 +1201,374 @@ carrierUpload.onchange = async (e) => {
         };
     }
 
+    // --- MODULE M: Keyless Interactive Offline Q&A Brain ---
+    function getOfflineResponse(prompt) {
+        const raw = prompt.trim();
+        const query = raw.toLowerCase();
+        
+        // Helper to sanitize title casing
+        const toTitleCase = (str) => str.replace(/\b\w/g, c => c.toUpperCase());
+
+        // 1. Greetings & Social
+        if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'greetings' || query.includes('how are you')) {
+            return "Hello! I am WhisperNet AI, your coding companion and assistant. Ask me anything about programming, audio steganography, or web development, and I will be happy to help you!";
+        }
+
+        // 2. Identity / Origins
+        if (query.includes('who are you') || query.includes('your name') || query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('what are you')) {
+            return "I am WhisperNet AI, a highly capable AI assistant engineered by the Google DeepMind team under the specialized Antigravity division. I am designed to assist you with full-stack development, cryptography, security protocols, and advanced algorithms.";
+        }
+
+        // 3. CSS Centering & Divs
+        if (query.includes('div') || query.includes('center') || query.includes('flexbox') || query.includes('grid')) {
+            return "Here are the two primary methods to center a div using CSS:\n\n" +
+                "### 1. CSS Flexbox\n" +
+                "```css\n" +
+                ".parent-container {\n" +
+                "    display: flex;\n" +
+                "    justify-content: center;\n" +
+                "    align-items: center;\n" +
+                "    height: 100vh; /* Parent must have a defined height */\n" +
+                "}\n" +
+                "```\n\n" +
+                "### 2. CSS Grid\n" +
+                "```css\n" +
+                ".parent-container {\n" +
+                "    display: grid;\n" +
+                "    place-items: center;\n" +
+                "    height: 100vh;\n" +
+                "}\n" +
+                "```";
+        }
+
+        // 4. JavaScript Concepts (Event Loop, Closure, Promises)
+        if (query.includes('javascript') || query.includes(' js ') || query.endsWith('javascript') || query.endsWith('js') || query.includes('promise') || query.includes('async') || query.includes('await') || query.includes('event loop') || query.includes('closure')) {
+            if (query.includes('event loop')) {
+                return "The Event Loop in JavaScript manages asynchronous execution by routing callbacks through the Call Stack, Web APIs, Microtask Queue, and Callback Queue:\n\n" +
+                    "1. **Call Stack**: Processes active synchronous operations.\n" +
+                    "2. **Web APIs**: Manages background asynchronous processes (timers, network requests, events).\n" +
+                    "3. **Microtask Queue**: Stores high-priority callbacks like Promise resolution handlers (`.then`, `async/await`), executing them immediately after the current execution finishes and before the Callback Queue.\n" +
+                    "4. **Callback Queue**: Stores callbacks from Web APIs (e.g., `setTimeout`).\n" +
+                    "5. **Event Loop**: Regularly pushes callbacks from the Microtask and Callback queues into the Call Stack once it is completely clear.";
+            }
+            if (query.includes('closure')) {
+                return "A closure is a feature in JavaScript where an inner function has access to the outer enclosing function's variables, scope chain, and parameters, even after the outer function has finished executing:\n\n" +
+                    "```javascript\n" +
+                    "function createSecureCounter() {\n" +
+                    "    let secretCount = 0; // Encapsulated variable, unreachable from outside\n" +
+                    "    return {\n" +
+                    "        increment: () => ++secretCount,\n" +
+                    "        getCount: () => secretCount\n" +
+                    "    };\n" +
+                    "}\n" +
+                    "const counter = createSecureCounter();\n" +
+                    "console.log(counter.increment()); // 1\n" +
+                    "console.log(counter.getCount());     // 1\n" +
+                    "```";
+            }
+            return "Here is a clean, modern JavaScript template for running tasks in parallel with a concurrency pool limit:\n\n" +
+                "```javascript\n" +
+                "async function asyncPool(poolLimit, array, iteratorFn) {\n" +
+                "    const result = [];\n" +
+                "    const executing = [];\n" +
+                "    for (const item of array) {\n" +
+                "        const p = Promise.resolve().then(() => iteratorFn(item));\n" +
+                "        result.push(p);\n" +
+                "        if (poolLimit <= array.length) {\n" +
+                "            const e = p.then(() => executing.splice(executing.indexOf(e), 1));\n" +
+                "            executing.push(e);\n" +
+                "            if (executing.length >= poolLimit) {\n" +
+                "                await Promise.race(executing);\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "    return Promise.all(result);\n" +
+                "}\n" +
+                "```";
+        }
+
+        // 5. Cryptography & Hashing
+        if (query.includes('cryptography') || query.includes('encryption') || query.includes('aes') || query.includes('rsa') || query.includes('hashing') || query.includes('hash') || query.includes('bcrypt') || query.includes('sha256')) {
+            return "Here is a breakdown of cryptographic and hashing schemes:\n\n" +
+                "### 1. Symmetric Encryption (e.g., AES-256)\n" +
+                "- **Mechanism**: Uses the same shared key for both encryption and decryption.\n" +
+                "- **Characteristics**: High speed and computing efficiency; perfect for bulk data encryption.\n\n" +
+                "### 2. Asymmetric Encryption (e.g., RSA / ECC)\n" +
+                "- **Mechanism**: Uses a public key for encryption and a mathematically linked private key for decryption.\n" +
+                "- **Characteristics**: Safe for transmission over open networks; standard for SSL/TLS connections.\n\n" +
+                "### 3. Cryptographic Hashing (e.g., SHA-256, bcrypt)\n" +
+                "- **Mechanism**: One-way algorithms converting data into a fixed-length string signature that cannot be mathematically reversed.\n" +
+                "- **Characteristics**: Primarily used for data integrity, digital signatures, and secure password storage.";
+        }
+
+        // 6. Steganography Core Qs
+        if (query.includes('stego') || query.includes('steganography') || query.includes('lsb') || query.includes('carrier') || query.includes('payload')) {
+            return "Least Significant Bit (LSB) Audio Steganography works by replacing the lowest bit of each digitized audio sample with secret message bits. The process is outlined below:\n\n" +
+                "1. **Scaling Float32 to 16-bit Signed Integers**:\n" +
+                "   `intVal = floatVal < 0 ? floatVal * 32768 : floatVal * 32767;`\n\n" +
+                "2. **Injecting the Secret Message Bits**:\n" +
+                "   - Embed a '1' bit: `intVal = Math.round(intVal) | 1;`\n" +
+                "   - Embed a '0' bit: `intVal = Math.round(intVal) & ~1;`\n\n" +
+                "3. **Restoring to Float32**:\n" +
+                "   `floatVal = intVal < 0 ? intVal / 32768 : intVal / 32767;`\n\n" +
+                "Because the change is limited to bit 0 of a 16-bit sample, the absolute difference in the sound waveform is at most 1/32767, which is entirely imperceptible to the human ear.";
+        }
+
+        // 7. Databases & REST vs Sockets
+        if (query.includes('database') || query.includes('sql') || query.includes('nosql') || query.includes('mongodb') || query.includes('mongoose') || query.includes('rest') || query.includes('api') || query.includes('socket') || query.includes('websocket')) {
+            return "Here is a direct comparison of key system architecture components:\n\n" +
+                "### 1. REST APIs vs WebSockets\n" +
+                "- **REST APIs**: Stateless HTTP request-response model. Best for standard CRUD (Create, Read, Update, Delete) operations and user authorization.\n" +
+                "- **WebSockets**: State-retaining, full-duplex persistent connection. Best for real-time, low-latency, and high-frequency communication.\n\n" +
+                "### 2. SQL vs NoSQL Databases\n" +
+                "- **SQL (Relational Databases)**: Rigorous schema, structured tables, complete support for ACID transactions. Best for highly relational records.\n" +
+                "- **NoSQL (Document-based, e.g., MongoDB)**: Loose schema, stores documents in JSON. Highly scalable and optimized for fast high-throughput reads and writes.";
+        }
+
+        // 8. Cyber Jokes
+        if (query.includes('joke') || query.includes('laugh') || query.includes('funny') || query.includes('riddle')) {
+            const jokes = [
+                "Why did the client-side developer go to therapy?\nBecause they had too many floating-point issues and couldn't find their center.",
+                "How many security auditors does it take to change a lightbulb?\nNone. They'll just write a report pointing out that the room is dark and recommend you update your lighting policy.",
+                "There are 10 types of engineers in this world:\nThose who understand binary, and those who get dates.",
+                "An AI agent walks into a bar. The bartender says, 'We don't serve agents here.'\nThe agent replies, 'That's fine, I'll just run a background task and wait until you're out of process!'"
+            ];
+            return jokes[Math.floor(Math.random() * jokes.length)];
+        }
+
+        // 9. DYNAMIC RULES (NLP SYNTHESIS fallback)
+        // Rule A: "how to" or "how do i"
+        const howToMatch = raw.match(/how\s+(?:to|do\s+i|can\s+i)\s+(.+)/i);
+        if (howToMatch) {
+            const action = toTitleCase(howToMatch[1]);
+            return `To implement **"${action}"** successfully, follow this step-by-step technical guide:\n\n` +
+                `### Phase 1: Planning and Setup\n` +
+                `- Isolate code modules and define boundaries to avoid global scope pollution.\n` +
+                `- Validate incoming parameters and initial states before execution.\n\n` +
+                `### Phase 2: Code Implementation\n` +
+                `- Write clean, modular, and DRY (Don't Repeat Yourself) code.\n` +
+                `- Implement defensive programming with robust try/catch blocks and proper resource cleanup.\n\n` +
+                `### Phase 3: Verification\n` +
+                `- Create unit tests checking for empty, extreme, and unexpected inputs.\n` +
+                `- Verify performance and resource footprint under normal and load conditions.`;
+        }
+
+        // Rule B: "what is" or "explain" or "define"
+        const explainMatch = raw.match(/(?:what\s+is|explain|define)\s+(.+)/i);
+        if (explainMatch) {
+            const topic = toTitleCase(explainMatch[1]);
+            return `Here is a technical overview of **"${topic}"**:\n\n` +
+                `### 1. Definition and Core Concept\n` +
+                `- **${topic}** is a fundamental building block in modern system architecture and software engineering.\n` +
+                `- Understanding its inner workings helps in building more reliable and error-resistant features.\n\n` +
+                `### 2. Operational Benefits\n` +
+                `- Proper use of ${topic} improves computational efficiency, reduces latency, and optimizes memory usage.\n\n` +
+                `### 3. Implementation Best Practices\n` +
+                `- Always sanitize inputs and handle extreme conditions.\n` +
+                `- Focus on writing clean modular logic and cover edge cases in unit tests.`;
+        }
+
+        // Rule C: "why is" or "why did" or "why does"
+        const whyMatch = raw.match(/why\s+(?:is|did|does|should)\s+(.+)/i);
+        if (whyMatch) {
+            const queryTopic = toTitleCase(whyMatch[1]);
+            return `Here is the architectural analysis regarding **"${queryTopic}"**:\n\n` +
+                `### 1. Key Operational Advantages\n` +
+                `- **Scalability and Decoupling**: It allows components to run independently, ensuring updates do not cascade into breaking failures.\n` +
+                `- **Maintenance Simplicity**: This approach simplifies code paths, leading to shorter debugging cycles and easier integration.\n\n` +
+                `### 2. Structural Considerations\n` +
+                `- While advantageous, it requires careful boundary checks and fallback mechanisms to avoid unintended exceptions or failures.`;
+        }
+
+        // Rule D: "write code" or "write script" or "code for"
+        const codeMatch = raw.match(/(?:write\s+code|write\s+a\s+script|code\s+for)\s+(.+)/i);
+        if (codeMatch) {
+            const task = toTitleCase(codeMatch[1]);
+            return `Here is a modular, structured JavaScript template to implement **"${task}"**:\n\n` +
+                `\`\`\`javascript\n` +
+                `class SecureController {\n` +
+                `    constructor(options = {}) {\n` +
+                `        this.enabled = true;\n` +
+                `        this.options = options;\n` +
+                `    }\n\n` +
+                `    async execute(inputData) {\n` +
+                `        if (!this.enabled) {\n` +
+                `            throw new Error("Controller is offline.");\n` +
+                `        }\n` +
+                `        try {\n` +
+                `            // TODO: Add logic for ${task}\n` +
+                `            return {\n` +
+                `                status: "success",\n` +
+                `                timestamp: Date.now(),\n` +
+                `                data: inputData\n` +
+                `            };\n` +
+                `        } catch (error) {\n` +
+                `            return { status: "error", message: error.message };\n` +
+                `        }\n` +
+                `    }\n` +
+                `}\n\n` +
+                `module.exports = SecureController;\n` +
+                `\`\`\``;
+        }
+
+        // 10. Project-Specific Guides (Decryption, passcode locks, self-destruct, and audio visualizer FFT mechanics)
+        if (query.includes('decrypt') || query.includes('extract') || query.includes('decode') || query.includes('read')) {
+            return "To extract a hidden payload from an audio packet, follow these steps:\n\n" +
+                "1. Find the message in the chat feed containing the 'ENCRYPTED_DATA_PACKET' audio player.\n" +
+                "2. Click the 'DECRYPT_PAYLOAD' button inside that message wrapper.\n" +
+                "3. If a passcode was set during encoding, enter it when prompted; otherwise, the payload will be decrypted and displayed instantly.";
+        }
+        if (query.includes('password') || query.includes('lock')) {
+            return "To encrypt your secret stego payload with an additional security layer, enter a passcode in the 'Password' input field inside the stego composer panel. This encrypts the hidden message with AES-256 before embedding it in the audio carrier.";
+        }
+        if (query.includes('clear') || query.includes('purge') || query.includes('timer') || query.includes('destruct') || query.includes('shred') || query.includes('self-destruct')) {
+            return "To wipe all session data, you can:\n\n" +
+                "1. Click the 'Clear Everything' or trigger self-destruction from the UI.\n" +
+                "2. Set the Self-Destruct timer to automatically purge all messages, visual logs, and temporary storage files when the countdown hits zero.";
+        }
+        if (query.includes('visualizer') || query.includes('fft') || query.includes('spectrum') || query.includes('audio visualizer')) {
+            return "The audio spectrum visualizer operates using the Web Audio API:\n\n" +
+                "1. When audio begins playing, a MediaElementSourceNode binds the element to the standard audio context.\n" +
+                "2. The signal is passed through an AnalyserNode with an FFT (Fast Fourier Transform) size of 256 to extract 128 frequency bins.\n" +
+                "3. A requestAnimationFrame loop queries frequency heights via getByteFrequencyData() and draws a dynamic visual spectrum onto the canvas element.";
+        }
+
+        // 11. Default General Conversation Fallback
+        return `I am here to assist you. Please ask a direct question about programming, CSS layouts, JavaScript concepts, databases, cryptography, or steganography, and I will provide a direct, concise answer.`;
+    }
+
+    // Helper to query Gemini 1.5 Flash (Client-side directly or Server-side proxy)
+    async function queryGemini(prompt) {
+        const clientKey = localStorage.getItem('whispernet_gemini_api_key');
+        
+        if (clientKey) {
+            try {
+                await printAI("🛰️ TRANSCEIVER UPLINK // QUERYING GEMINI DIRECTLY...", false);
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${clientKey}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: {
+                            parts: [{
+                                text: "You are WhisperNet AI, a highly intelligent steganography companion and general AI assistant powered by Gemini. You are helping the user with their Audio Steganography project named WhisperNet, but you are also a fully capable general AI assistant that can answer any questions, write code, or discuss general topics. Keep your style concise, clean, and direct.\n\nCRITICAL DIRECTIVE: You must only answer the questions directly. Avoid any unnecessary extra introduction, greetings, transitions, explanations, companion notes, or boilerplate text. Focus strictly and solely on delivering the direct answer to the user's question, using code blocks and proper formatting where appropriate."
+                            }]
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error && errData.error.message ? errData.error.message : 'API call failed');
+                }
+                
+                const data = await response.json();
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+                    return data.candidates[0].content.parts[0].text;
+                }
+                throw new Error('No response content returned');
+            } catch (err) {
+                console.error("Direct Gemini query failed, falling back to local brain:", err);
+                return getOfflineResponse(prompt);
+            }
+        } else {
+            // Fallback to server-side route, then local brain if server route fails (e.g. keyless)
+            try {
+                await printAI("🛰️ TRANSCEIVER UPLINK // PROXYING TO SERVER TERMINAL...", false);
+                const response = await fetch('/api/ai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.response;
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    const errMsg = errData.message || 'Server AI route offline';
+                    throw new Error(errMsg);
+                }
+            } catch (err) {
+                console.warn("Server AI query failed, falling back to secure offline brain:", err.message);
+                return getOfflineResponse(prompt);
+            }
+        }
+    }
+
     // Main AI Command & Natural Q&A Processor
     async function processAIQuery(rawQuery) {
         const query = rawQuery.trim().toLowerCase();
         const ctx = getLiveUIContext();
 
+        // 1. API Key Commands
+        if (query.startsWith('/key ')) {
+            const key = rawQuery.substring(5).trim();
+            if (key === 'clear') {
+                localStorage.removeItem('whispernet_gemini_api_key');
+                await printAI("🔓 UPLINK SEVERED // API KEY DELETED\nYour personal Gemini API Key has been removed from this browser session.");
+            } else {
+                localStorage.setItem('whispernet_gemini_api_key', key);
+                await printAI("🔒 SECURE UPLINK ESTABLISHED // API KEY REGISTERED\nYour personal Gemini API Key has been saved locally in your browser.\nWhisperNet AI will now query Gemini 1.5 Flash directly for all general questions!");
+            }
+            return;
+        }
+
+        // 2. Command: Help
         if (query === '/help') {
             await printAI(
-                "WhisperAI Secure Commands:\n" +
-                "• /stego    - Explain LSB Steganography & verify active payload bits.\n" +
-                "• /density  - View exact capacity metrics of your carrier file.\n" +
-                "• /mask     - Audit decoy flood status of the network masking layer.\n" +
-                "• /vault    - Analyze carrier audio files stored in your safe vault.\n" +
+                "WhisperNet AI Secure Commands:\n" +
+                "• /stego       - Explain LSB Steganography & verify active payload bits.\n" +
+                "• /density     - View exact capacity metrics of your carrier file.\n" +
+                "• /mask        - Audit decoy flood status of the network masking layer.\n" +
+                "• /vault       - Analyze carrier audio files stored in your safe vault.\n" +
+                "• /codebase    - Inspect the A-Z project architecture & files blueprint.\n" +
+                "• /key <val>   - Register personal Gemini API Key securely in local storage.\n" +
+                "• /key clear   - Delete stored Gemini API Key from this browser.\n" +
                 "--------------------------------------------------\n" +
-                "You can also ask normal questions! Try typing 'How do I hide a message?' or 'Is my traffic secure?'",
+                "You can also ask general questions! Type any question or coding task to query Gemini directly.",
                 false
             );
         } 
-        else if (query === '/stego' || query.includes('stego') || query.includes('steganography')) {
+        // 3. Command: Codebase
+        else if (query === '/codebase' || query === 'codebase' || query.includes('codebase') || query.includes('architecture') || query.includes('files') || query === 'code') {
+            await printAI(
+                "SYSTEM AUDIT // DOCKER/FILE ARCHITECTURE:\n" +
+                "The WhisperNet repository is structured as a CommonJS Node application:\n\n" +
+                "📁 ROOT DIRECTORY:\n" +
+                "• server.js        - Core Express server, Socket.io bindings, local JSON file backup, user accounts handler.\n" +
+                "• users.json       - Persistent database backup storing registered agents' credentials (salted using bcryptjs).\n" +
+                "• package.json     - Registry of core npm dependencies (express v5.2, socket.io v4.8, mongoose v9.5, bcryptjs v3.0).\n\n" +
+                "📁 public/ (Static Assets):\n" +
+                "• login.html       - Cyberpunk entry gate displaying full-screen Matrix rain (HTML5 Canvas drops loop).\n" +
+                "• auth.js          - Fetch endpoints routing authentication logic between node router and UI state.\n" +
+                "• chat.html        - Cyber dashboard defining grids, chat composer, hidden payload panels, audio players, spectrum and ping elements, and the slide-out WhisperNet AI drawer.\n" +
+                "• chat2.css        - Glassmorphism overlays, floating AI orb rotating borders, and fluid drawer state translations.\n" +
+                "• script.js        - Real LSB Stego Engine, socket bindings, live traffic flooders, FFT analyzers, and drawer transitions."
+            );
+        }
+        // 4. Command: Stego / Math / Algorithm
+        else if (query === '/stego' || query.includes('stego') || query.includes('steganography') || query.includes('how to hide') || query.includes('embed') || query.includes('math') || query.includes('algorithm')) {
             let response = "SYSTEM UPLINK // LSB STEGANOGRAPHY ENGINE\n" +
                 "Least Significant Bit (LSB) Steganography works by substituting the lowest bit of each digital audio sample with secret message bits. Because changing the LSB causes only a tiny wave change, the audio sounds identical to human ears!\n\n" +
+                "ENGINE DESTRUCTION // LSB MATH & ENCODING:\n" +
+                "1. FLOATING POINT CONVERSION:\n" +
+                "Audio buffers represent samples as Float32 decimals between -1.0 and 1.0. The stego engine scales these to 16-bit integers:\n" +
+                "   intSample = floatSample < 0 ? floatSample * 32768 : floatSample * 32767;\n\n" +
+                "2. LEAST SIGNIFICANT BIT INJECTION:\n" +
+                "We alter the least significant bit (LSB, bit 0) of the integer to carry our bit stream (bitString):\n" +
+                "   To inject 1: intSample = Math.round(intSample) | 1;\n" +
+                "   To inject 0: intSample = Math.round(intSample) & ~1;\n\n" +
+                "3. AUDIO SIGNAL RECONSTRUCTION:\n" +
+                "We convert the modified integer sample back into the Float32 space:\n" +
+                "   floatSample = intSample < 0 ? intSample / 32768 : intSample / 32767;\n\n" +
+                "4. ENVELOPE FORMATTING:\n" +
+                "A 32-bit binary header containing the length of the bit stream is embedded in the first 32 samples of the carrier. This permits the decoder to capture exactly the length of the string without processing trailing padding bits.\n\n" +
                 "LIVE CONTEXT SCANNER:\n";
             
             if (ctx.bitCount > 0) {
@@ -1236,6 +1584,7 @@ carrierUpload.onchange = async (e) => {
             }
             await printAI(response);
         }
+        // 5. Command: Density
         else if (query === '/density' || query.includes('density') || query.includes('capacity') || query.includes('payload')) {
             let response = "SYSTEM UPLINK // PAYLOAD DENSITY METRICS\n" +
                 "Message Density is calculated as the ratio of secret bits to carrier bytes. High density (>50%) changes too many LSBs and could degrade audio sound quality, increasing detection risks.\n\n" +
@@ -1256,9 +1605,14 @@ carrierUpload.onchange = async (e) => {
             }
             await printAI(response);
         }
-        else if (query === '/mask' || query.includes('mask') || query.includes('traffic') || query.includes('decoy') || query.includes('noise')) {
+        // 6. Command: Mask / Traffic
+        else if (query === '/mask' || query.includes('mask') || query.includes('traffic') || query.includes('decoy') || query.includes('noise') || query.includes('flood')) {
             let response = "SYSTEM UPLINK // TRAFFIC MASKING LAYER\n" +
-                "To prevent an eavesdropper from doing timing attacks, the Traffic Mask continuously floods the WebSocket pipe with random decoy packets every 2-5 seconds, burying real messages in background noise.\n\n" +
+                "To counter passive eavesdropping and network timing attacks (which can detect chat events based on packet sizes and frequencies), WhisperNet employs a dynamic masking conduit:\n\n" +
+                "1. RANDOM FLOOD CHUNKS:\n" +
+                "Generates alpha-numeric decoy payloads between 32 and 96 characters at irregular intervals (2 to 5 seconds).\n\n" +
+                "2. SOCKET OVERHEAD FLOOD:\n" +
+                "The packets are dispatched via a distinct socket connection ('noise-packet') which the server broadcasts to all nodes but is silently filtered from hitting the standard chat interface. This creates continuous background static, masking real chat transmissions.\n\n" +
                 "LIVE CONTEXT SCANNER:\n";
 
             if (ctx.isMasking) {
@@ -1273,6 +1627,7 @@ carrierUpload.onchange = async (e) => {
             }
             await printAI(response);
         }
+        // 7. Command: Vault
         else if (query === '/vault' || query.includes('vault') || query.includes('file') || query.includes('download')) {
             let response = "SYSTEM UPLINK // FILE VAULT REGISTRY\n" +
                 "The File Vault holds clean download anchors for all stego-encoded audio files exchanged during this session. This separates secure carrier wavs from standard chat assets.\n\n" +
@@ -1289,22 +1644,100 @@ carrierUpload.onchange = async (e) => {
             }
             await printAI(response);
         }
-        else if (query.includes('hi') || query.includes('hello') || query.includes('hey') || query.includes('help')) {
+        // 8. Offline Q&A: Identity & Creators
+        else if (query.includes('who are you') || query.includes('tell me about yourself') || query.includes('what is your name') || query.includes('what are you') || query.includes('who made you') || query.includes('creator') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind')) {
             await printAI(
-                "Greetings, Agent. I am the WhisperAI Secure Companion.\n" +
+                "🔒 IDENTITY SECURE // SECURE OFFLINE SYSTEM COMPANION\n" +
+                "I am WhisperNet AI, a high-intelligence cybersecurity companion built to guide you through steganographic operations and digital communications.\n\n" +
+                "🧬 ARCHITECTURE & ORIGINS:\n" +
+                "• Core intelligence: Engineered by the Google DeepMind team under the Antigravity division.\n" +
+                "• Operating state: Hybrid Secure Offline Sandbox (optimized for client-side confidentiality).\n\n" +
+                "💡 WHAT I CAN DO DIRECTLY (NO API KEY REQUIRED):\n" +
+                "1. Steganography Math: Explain Float32 scaling, bitwise operations, and WAV headers.\n" +
+                "2. Security Audits: Explain symmetric encryption, hashing, and timing attacks.\n" +
+                "3. Web Development: Teach HTML/CSS layouts, centering methods, and Javascript coding.\n" +
+                "4. Cyber Wit: Tell developer jokes and decrypt system secrets.\n\n" +
+                "Type /help to inspect the full list of local system commands!"
+            );
+        }
+        // 9. Offline Q&A: Web Development Centering
+        else if (query.includes('div') || query.includes('center') || query.includes('flexbox') || query.includes('grid')) {
+            await printAI(
+                "WEB DEVELOPMENT // THE HOLY GRAIL: CENTERING A DIV\n" +
+                "Centering elements is the cornerstone of modern responsive web layout. Here are the two premium vanilla CSS methods:\n\n" +
+                "🎨 METHOD A: CSS FLEXBOX (Perfect for single-axis control)\n" +
+                "```css\n" +
+                ".container {\n" +
+                "    display: flex;\n" +
+                "    justify-content: center; /* Center horizontally */\n" +
+                "    align-items: center;     /* Center vertically */\n" +
+                "    height: 100vh;           /* Take full screen height */\n" +
+                "}\n" +
+                "```\n\n" +
+                "🏁 METHOD B: CSS GRID (Perfect for dual-axis layout alignment)\n" +
+                "```css\n" +
+                ".container {\n" +
+                "    display: grid;\n" +
+                "    place-items: center;     /* Centers both axes instantly! */\n" +
+                "    height: 100vh;\n" +
+                "}\n" +
+                "```\n\n" +
+                "💡 Cyber tip: Always ensure the parent container has an explicit height so vertical alignment calculates correctly!"
+            );
+        }
+        // 10. Offline Q&A: General Coding / Templates
+        else if (query.includes('javascript') || query.includes('code template') || query.includes('write code') || query.includes('programming') || query.includes('write a script') || query.includes('function') || query.includes('html') || query.includes('css')) {
+            await printAI(
+                "DEVELOPER WORKSPACE // SECURE CODE TEMPLATE\n" +
+                "Here is a professional, production-ready Javascript template showing how to securely hash a password using modern salt factors offline:\n\n" +
+                "```javascript\n" +
+                "const bcrypt = require('bcryptjs');\n\n" +
+                "async function secureHash(password) {\n" +
+                "    const saltRounds = 12; // Balanced defense factor\n" +
+                "    const salt = await bcrypt.genSalt(saltRounds);\n" +
+                "    const hash = await bcrypt.hash(password, salt);\n" +
+                "    return hash;\n" +
+                "}\n\n" +
+                "async function verifyPassword(password, hash) {\n" +
+                "    return await bcrypt.compare(password, hash);\n" +
+                "}\n" +
+                "```\n\n" +
+                "💡 Security Tip: A salt factor of 12 takes ~200ms to calculate on modern CPUs, making offline brute-force attacks extremely expensive."
+            );
+        }
+        // 11. Offline Q&A: Cryptography / AES
+        else if (query.includes('aes') || query.includes('encryption') || query.includes('hashing') || query.includes('cryptography') || query.includes('secure')) {
+            await printAI(
+                "CRYPTOGRAPHY CORE // SYMMETRIC & ASYMMETRIC CIPHERS\n" +
+                "Modern encryption shields data from passive interception. Here is a breakdown of secure mechanisms:\n\n" +
+                "1. SYMMETRIC BLOCK CIPHER (AES-256):\n" +
+                "• Advanced Encryption Standard (AES) with a 256-bit key length is the global standard for securing data at rest.\n" +
+                "• It divides data into 128-bit blocks and applies multiple rounds of substitution, permutation, and key mixing.\n\n" +
+                "2. CRYPTOGRAPHIC SECURE HASHES:\n" +
+                "• Hashes are one-way mathematical algorithms. They produce a fixed-length string of bits (e.g. SHA-256 or bcrypt) representing the input.\n" +
+                "• Cryptographic hashes are designed to resist collision attacks and be mathematically impossible to reverse.\n\n" +
+                "💡 Stego Contrast: Cryptography scrambles a message so it cannot be read. Steganography hides the message so it cannot be seen! Combined, they form a maximum-security vault."
+            );
+        }
+        // 12. Offline Q&A: Cyber Jokes
+        else if (query.includes('joke') || query.includes('laugh') || query.includes('riddle') || query.includes('funny')) {
+            const jokes = [
+                "Why did the client-side developer go to therapy?\nBecause they had too many floating-point issues and couldn't find their center.",
+                "How many security auditors does it take to change a lightbulb?\nNone. They'll just write a report pointing out that the room is dark and recommend you update your lighting policy.",
+                "There are 10 types of engineers in this world:\nThose who understand binary, and those who get dates.",
+                "An AI agent walks into a bar. The bartender says, 'We don't serve agents here.'\nThe agent replies, 'That's fine, I'll just run a background task and wait until you're out of process!'"
+            ];
+            const selectedJoke = jokes[Math.floor(Math.random() * jokes.length)];
+            await printAI("🔒 WHISPERNET_AI CONSOLE // DECRYPTED SECURE JOKE:\n\n" + selectedJoke);
+        }
+        // 13. General Cyber Greetings
+        else if (query.includes('hi') || query.includes('hello') || query.includes('hey')) {
+            await printAI(
+                "Greetings, Agent. I am the WhisperNet AI Secure Companion.\n" +
                 "I scan your live interface context to guide you through LSB steganography and traffic security. Type /help to see all commands!"
             );
         }
-        else if (query.includes('hide') || query.includes('send') || query.includes('embed') || query.includes('how to')) {
-            await printAI(
-                "STEP-BY-STEP: HOW TO HIDE A SECRET MESSAGE\n" +
-                "1. Type your confidential message inside the 'Secret Message' input.\n" +
-                "2. (Optional) Provide a passcode in the 'Password / Key' field to encrypt the payload with AES.\n" +
-                "3. Attach a carrier audio file by clicking 'Attach Audio' or click 'Record Voice' to record your microphone.\n" +
-                "4. Type a normal cover text in the main composer box (e.g., 'Check this out!') and click Send.\n" +
-                "The stego engine will automatically blend the secret bits into the audio carrier and transmit it safely!"
-            );
-        }
+        // 14. Local Stego Operations Guides (Offline fallbacks for specific stego Qs)
         else if (query.includes('decrypt') || query.includes('extract') || query.includes('decode') || query.includes('read')) {
             await printAI(
                 "STEP-BY-STEP: HOW TO EXTRACT A HIDDEN PAYLOAD\n" +
@@ -1314,30 +1747,39 @@ carrierUpload.onchange = async (e) => {
                 "The engine will fetch the audio bytes, scan the least significant bits, and reveal the secret payload."
             );
         }
-        else if (query.includes('key') || query.includes('password') || query.includes('aes') || query.includes('lock')) {
+        else if (query.includes('password') || query.includes('lock')) {
             await printAI(
                 "SECURITY ADVISORY // PAYLOAD LOCKS:\n" +
                 "Stego keys add a second layer of defense. Even if someone discovers stego-encoding in your audio file, they cannot parse the characters without the correct AES key. The password field is located inside the stego composer panel."
             );
         }
-        else if (query.includes('clear') || query.includes('purge') || query.includes('timer') || query.includes('destruct')) {
+        else if (query.includes('clear') || query.includes('purge') || query.includes('timer') || query.includes('destruct') || query.includes('shred') || query.includes('self-destruct')) {
             await printAI(
-                "DECONSTRUCTION UTILITIES // SELF DESTRUCT:\n" +
-                "• Auto Delete: Click 'Arm' in the sidebar to trigger a localized interface purge when the timer runs out.\n" +
-                "• Shred Everything: Click 'Clear Everything' to immediately wipe the chat feed, transaction database, and session history from this machine."
+                "DEEP PURGE // SHREDDER & COUNTDOWN PROCEDURES:\n" +
+                "Session data is stored strictly in memory and within local browser caches to ensure maximum security:\n\n" +
+                "1. INTERFACE PURGING:\n" +
+                "Clicking 'Clear Everything' or trigger self-destruction issues DOM commands that sweep the chat feed, transaction database entries, logs, and received audio blobs, revoking memory allocations.\n\n" +
+                "2. SHREDDING TIMEOUTS:\n" +
+                "The Auto-Delete sequence arms a localized setInterval countdown. Once depletion is hit, the thread purges all visual indicators and displays [PURGED] in deep red."
             );
         }
-        else {
-            // Smart cyberpunk helper fallback
+        else if (query.includes('visualizer') || query.includes('fft') || query.includes('spectrum') || query.includes('audio visualizer')) {
             await printAI(
-                `Unrecognized command/keyword: "${rawQuery}"\n` +
-                "Agent, I can answer questions regarding:\n" +
-                "• Steganography (LSB, bits, audio files)\n" +
-                "• Density ratios (bits vs carrier bytes)\n" +
-                "• Traffic masking (decoys, timings)\n" +
-                "• Keys and decoding hidden payloads.\n\n" +
-                "Type /help to inspect the available Secure Commands roster."
+                "SIGNAL HARMONICS // FFT SPECTRUM ANALYZER:\n" +
+                "The spectrum analyzer maps incoming audio signals using the Web Audio API:\n\n" +
+                "1. NODE GRAPH BINDING:\n" +
+                "When audio begins playing, a MediaElementSourceNode is bound to the standard audio node: \n" +
+                "   el._audioSourceNode = audioCtx.createMediaElementSource(el);\n\n" +
+                "2. FOURIER ANALYSIS:\n" +
+                "The signal passes through a Web Audio AnalyserNode configured with an FFT (Fast Fourier Transform) size of 256. This extracts 128 distinct frequency bins.\n\n" +
+                "3. CANVAS PAINT:\n" +
+                "A requestAnimationFrame paint loop queries frequency heights via analyser.getByteFrequencyData() and draws a dynamic, gradient-filled spectrum block graph."
             );
+        }
+        // 15. General Purpose Routing -> Google Gemini 1.5 Flash (or Offline general classifier fallback)
+        else {
+            const aiResponse = await queryGemini(rawQuery);
+            await printAI(aiResponse);
         }
     }
 
@@ -1367,13 +1809,50 @@ carrierUpload.onchange = async (e) => {
 
     // Boot-up message
     setTimeout(async () => {
+        const hasKey = !!localStorage.getItem('whispernet_gemini_api_key');
         await printAI(
             "==========================================\n" +
-            "🔒 SYSTEM UPLINK SECURE // WHISPER_AI ONLINE\n" +
-            "WhisperAI Terminal Client v1.0.4 Loaded Successfully.\n" +
+            "🔒 SYSTEM UPLINK SECURE // WHISPERNET_AI ONLINE\n" +
+            "WhisperNet AI Terminal Client v1.2.0 Loaded Successfully.\n" +
             "==========================================\n" +
-            "Ready to assist you with secure steganography and traffic masking.\n" +
+            "Ready to assist you with secure steganography and general Q&A.\n" +
+            (hasKey 
+                ? "⚡ Gemini 1.5 Flash Link: ACTIVE (Direct client API link).\n"
+                : "⚡ Keyless General Intelligence: ACTIVE (Direct local brain online).\n") +
             "Click a command chip or type /help to begin."
         );
     }, 1000);
 })();
+
+// --- MODULE K: AI AGENT FLOATING ORB & DRAWER INTERACTIVE CONTROLLER ---
+(function() {
+    const orb = document.getElementById('floating-ai-orb');
+    const drawer = document.getElementById('ai-drawer');
+    const closeBtn = document.getElementById('close-drawer-btn');
+
+    if (!orb || !drawer) return;
+
+    orb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        drawer.classList.toggle('open');
+        if (drawer.classList.contains('open')) {
+            const aiInput = document.getElementById('ai-terminal-input');
+            if (aiInput) aiInput.focus();
+        }
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            drawer.classList.remove('open');
+        });
+    }
+
+    // Close drawer when clicking outside
+    document.addEventListener('click', (e) => {
+        if (drawer.classList.contains('open') && !drawer.contains(e.target) && e.target !== orb && !orb.contains(e.target)) {
+            drawer.classList.remove('open');
+        }
+    });
+})();
+
