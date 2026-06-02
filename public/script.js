@@ -386,19 +386,19 @@ const StegoEngine = {
         
         // Inject bits into LSB
         for (let i = 0; i < finalBits.length; i++) {
-            // Convert float sample (-1 to 1) to 16-bit int (-32768 to 32767)
-            let sample = Math.max(-1, Math.min(1, channelData[i]));
-            let intSample = sample < 0 ? sample * 32768 : sample * 32767;
+            // Clamp sample to prevent signed 16-bit integer boundary overflow
+            let sample = Math.max(-0.9999, Math.min(0.9999, channelData[i]));
+            let intSample = Math.round(sample * 32768);
             
             // Set LSB
             if (finalBits[i] === '1') {
-                intSample = (Math.round(intSample) | 1);
+                intSample = (intSample | 1);
             } else {
-                intSample = (Math.round(intSample) & ~1);
+                intSample = (intSample & ~1);
             }
             
-            // Convert back to float
-            channelData[i] = intSample < 0 ? intSample / 32768 : intSample / 32767;
+            // Convert back to float symmetrically
+            channelData[i] = intSample / 32768;
         }
         
         return this.audioBufferToWavBlob(audioBuffer);
@@ -412,8 +412,8 @@ const StegoEngine = {
             // 1. Read 32-bit length header
             let lengthBits = '';
             for (let i = 0; i < 32; i++) {
-                let sample = Math.max(-1, Math.min(1, channelData[i]));
-                let intSample = Math.round(sample < 0 ? sample * 32768 : sample * 32767);
+                let sample = Math.max(-0.9999, Math.min(0.9999, channelData[i]));
+                let intSample = Math.round(sample * 32768);
                 lengthBits += (Math.abs(intSample) & 1).toString();
             }
             const dataLength = parseInt(lengthBits, 2);
@@ -425,8 +425,8 @@ const StegoEngine = {
             // 2. Read data bits
             let dataBits = '';
             for (let i = 32; i < 32 + dataLength; i++) {
-                let sample = Math.max(-1, Math.min(1, channelData[i]));
-                let intSample = Math.round(sample < 0 ? sample * 32768 : sample * 32767);
+                let sample = Math.max(-0.9999, Math.min(0.9999, channelData[i]));
+                let intSample = Math.round(sample * 32768);
                 dataBits += (Math.abs(intSample) & 1).toString();
             }
             
@@ -467,9 +467,9 @@ const StegoEngine = {
         
         while (pos < length) {
             for (let i = 0; i < numOfChan; i++) {
-                let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-                sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF);
-                view.setInt16(pos, sample, true);
+                let sample = Math.max(-0.9999, Math.min(0.9999, channels[i][offset]));
+                let sampleInt = Math.round(sample * 32768);
+                view.setInt16(pos, sampleInt, true);
                 pos += 2;
             }
             offset++;
