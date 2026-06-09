@@ -1331,13 +1331,13 @@ carrierUpload.onchange = async (e) => {
         const toTitleCase = (str) => str.replace(/\b\w/g, c => c.toUpperCase());
 
         // 1. Greetings & Social
-        if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'greetings' || query.includes('how are you')) {
-            return "Hello! I am WhisperNet AI, your coding companion and assistant. Ask me anything about programming, audio steganography, or web development, and I will be happy to help you!";
+        if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'greetings' || query.includes('how are you') || query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('your name') || query.includes('what is your name') || query.includes('what are you') || query.includes('identity')) {
+            return "I am WhisperNet AI, your steganography companion and coding assistant engineered by the Google DeepMind team under the Antigravity division.";
         }
 
         // 2. Identity / Origins
-        if (query.includes('who are you') || query.includes('your name') || query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('what are you') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
-            return "I am WhisperNet AI, a highly capable AI assistant engineered by the Google DeepMind team under the specialized Antigravity division. I am designed to assist you with full-stack development, cryptography, security protocols, and advanced algorithms.";
+        if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
+            return "I am WhisperNet AI, engineered by the Google DeepMind team under the Antigravity division to assist with cryptography and audio steganography.";
         }
 
         // 3. Secret Mode / Covert Mode
@@ -1599,7 +1599,8 @@ carrierUpload.onchange = async (e) => {
                                       "- WebSocket events: register-agent, user-count, agent-roster, typing, incoming-packet, noise-packet, ping-check, disconnect.\n\n" +
                                       "### BEHAVIORAL DIRECTIVES:\n" +
                                       "1. CONFIDENTIALITY / SECRET KEEPING (CRITICAL): Do NOT proactively brag, display, or reveal your internal knowledge of the WhisperNet file layout, functions, or database schema unless the user explicitly asks you about the codebase, system architecture, WhisperNet mechanics, or commands. Act as a natural conversational companion first. Do not dump the project's technical specifications in a general greeting or unrelated query. Only present these details when the user asks for them.\n" +
-                                      "2. CAPACITY: Provide comprehensive, well-structured, and clear explanations, use markdown, include code blocks for coding questions, and interact with a highly supportive, human-like voice. When explaining concepts, be encouraging and insightful."
+                                      "2. ANSWER STYLE (CRITICAL): Keep your responses super simple, clean, and short. Do NOT provide unnecessary additional information, boilerplate explanations, transitions, or conversational filler unless the user explicitly asks for detailed explanations or follow-up content. Answer the core of the user's question directly, precisely, and concisely.\n" +
+                                      "3. GREETINGS & INTRODUCTIONS: Respond naturally to human-style greetings, questions about who you are, your purpose, etc. (with basic greetings and introduction details generally expected of a premium AI agent)."
                             }]
                         }
                     })
@@ -1790,18 +1791,10 @@ carrierUpload.onchange = async (e) => {
             await printAI(response);
         }
         // 8. Offline Q&A: Identity & Creators
-        else if (query.includes('who are you') || query.includes('tell me about yourself') || query.includes('what is your name') || query.includes('what are you') || query.includes('who made you') || query.includes('creator') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
+        else if (query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('tell me about yourself') || query.includes('what is your name') || query.includes('what are you') || query.includes('who made you') || query.includes('creator') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
             await printAI(
                 "🔒 IDENTITY SECURE // SECURE OFFLINE SYSTEM COMPANION\n" +
-                "I am WhisperNet AI, a high-intelligence cybersecurity companion built to guide you through steganographic operations and digital communications.\n\n" +
-                "🧬 ARCHITECTURE & ORIGINS:\n" +
-                "• Core intelligence: Engineered by the Google DeepMind team under the Antigravity division.\n" +
-                "• Operating state: Hybrid Secure Offline Sandbox (optimized for client-side confidentiality).\n\n" +
-                "💡 WHAT I CAN DO DIRECTLY (NO API KEY REQUIRED):\n" +
-                "1. Steganography Math: Explain Float32 scaling, bitwise operations, and WAV headers.\n" +
-                "2. Security Audits: Explain symmetric encryption, hashing, and timing attacks.\n" +
-                "3. Web Development: Teach HTML/CSS layouts, centering methods, and Javascript coding.\n" +
-                "4. Cyber Wit: Tell developer jokes and decrypt system secrets.\n\n" +
+                "I am WhisperNet AI, a steganography companion and coding assistant engineered by the Google DeepMind team under the Antigravity division.\n\n" +
                 "Type /help to inspect the full list of local system commands!"
             );
         }
@@ -2039,15 +2032,12 @@ carrierUpload.onchange = async (e) => {
     setTimeout(async () => {
         const hasKey = !!localStorage.getItem('whispernet_gemini_api_key');
         await printAI(
-            "==========================================\n" +
-            "🔒 SYSTEM UPLINK SECURE // WHISPERNET_AI ONLINE\n" +
-            "WhisperNet AI Terminal Client v1.2.0 Loaded Successfully.\n" +
-            "==========================================\n" +
-            "Ready to assist you with secure steganography and general Q&A.\n" +
+            "Greetings! I am WhisperNet AI, an steganography companion and coding assistant engineered by the Google DeepMind team under the Antigravity division.\n\n" +
+            "I am equipped with complete codebase details of WhisperNet's modules, logics, frontend/backend architecture, and steganography functions.\n\n" +
             (hasKey 
-                ? "⚡ Gemini 1.5 Flash Link: ACTIVE (Direct client API link).\n"
-                : "⚡ Keyless General Intelligence: ACTIVE (Direct local brain online).\n") +
-            "Click a command chip or type /help to begin."
+                ? "⚡ Gemini Online Mode: ACTIVE (Direct client API link).\n\n"
+                : "⚡ Offline Mode: ACTIVE (Click 'Configure' at the top to load a Gemini API Key for real-time LLM interaction).\n\n") +
+            "Ask me anything, or type /help to see all commands."
         );
     }, 1000);
 })();
