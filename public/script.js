@@ -1250,7 +1250,6 @@ carrierUpload.onchange = async (e) => {
     function printAI(text, isHTML = false) {
         const msg = document.createElement('div');
         msg.className = 'terminal-msg ai';
-        msg.innerHTML = '<div class="ai-header">> WHISPERNET_AI:</div>';
         
         const contentSpan = document.createElement('span');
         msg.appendChild(contentSpan);
@@ -1287,7 +1286,7 @@ carrierUpload.onchange = async (e) => {
     function printUser(text) {
         const msg = document.createElement('div');
         msg.className = 'terminal-msg user';
-        msg.textContent = `> AGENT: ${text}`;
+        msg.textContent = text;
         aiFeed.appendChild(msg);
         aiFeed.scrollTop = aiFeed.scrollHeight;
     }
