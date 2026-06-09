@@ -921,16 +921,60 @@ body.covert-active .bottom-row {
     text-shadow: 0 0 4px rgba(255, 0, 127, 0.5);
     margin-bottom: 2px;
 }
-
 .terminal-msg.ai pre {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(0, 242, 255, 0.15);
     border-radius: 4px;
-    padding: 6px;
+    padding: 8px;
     color: #aaa;
-    margin-top: 4px;
+    margin-top: 6px;
     font-size: 10px;
     white-space: pre-wrap;
+    font-family: 'Share Tech Mono', monospace;
+    overflow-x: auto;
+}
+
+.terminal-msg.ai code {
+    background: rgba(0, 242, 255, 0.1);
+    color: #00f2ff;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+}
+
+.terminal-msg.ai pre code {
+    background: transparent;
+    color: #aaa;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+}
+
+.terminal-msg.ai h1, .terminal-msg.ai h2, .terminal-msg.ai h3 {
+    color: var(--vivid-magenta);
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    text-shadow: 0 0 5px rgba(255, 0, 127, 0.3);
+}
+
+.terminal-msg.ai h1 { font-size: 14px; }
+.terminal-msg.ai h2 { font-size: 13px; }
+.terminal-msg.ai h3 { font-size: 12px; }
+
+.terminal-msg.ai li {
+    margin-left: 16px;
+    margin-top: 4px;
+    list-style-type: square;
+    color: #c5f2ff;
+}
+
+.terminal-msg.ai strong {
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 0 0 2px rgba(255,255,255,0.5);
 }
 
 .terminal-chips {

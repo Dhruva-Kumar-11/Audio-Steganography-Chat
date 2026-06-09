@@ -1200,6 +1200,52 @@ carrierUpload.onchange = async (e) => {
 
     if (!aiFeed || !aiForm || !aiInput) return;
 
+    // Simple client-side Markdown to HTML converter
+    function parseMarkdown(text) {
+        if (!text) return "";
+        
+        // Escape HTML characters
+        let html = text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        // Code blocks: ```lang\ncode\n```
+        html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
+            return `<pre><code>${code}</code></pre>`;
+        });
+
+        // Inline code: `code`
+        html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+        // Headers: ### Header, ## Header, # Header
+        html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+        html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+        // Bold: **text**
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+        // Bullet points: • item or - item
+        html = html.replace(/^[•\-\*]\s+(.*$)/gim, '<li>$1</li>');
+
+        // Line breaks (convert remaining \n to <br> while protecting code blocks)
+        const blocks = [];
+        html = html.replace(/(<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>)/g, (match) => {
+            blocks.push(match);
+            return `__PRE_BLOCK_${blocks.length - 1}__`;
+        });
+
+        html = html.replace(/\n/g, '<br>');
+
+        // Restore pre blocks
+        html = html.replace(/__PRE_BLOCK_(\d+)__/g, (match, index) => {
+            return blocks[parseInt(index)];
+        });
+
+        return html;
+    }
+
     // Premium typewriting delayed text print
     function printAI(text, isHTML = false) {
         const msg = document.createElement('div');
@@ -1227,6 +1273,9 @@ carrierUpload.onchange = async (e) => {
                         aiFeed.scrollTop = aiFeed.scrollHeight;
                         setTimeout(type, speed);
                     } else {
+                        // Typewriting complete: format the markdown text into HTML
+                        contentSpan.innerHTML = parseMarkdown(text);
+                        aiFeed.scrollTop = aiFeed.scrollHeight;
                         resolve();
                     }
                 }
