@@ -173,12 +173,12 @@ function getOfflineResponse(prompt) {
 
     // 1. Greetings & Social
     if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'greetings' || query.includes('how are you') || query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('your name') || query.includes('what is your name') || query.includes('what are you') || query.includes('identity')) {
-        return "I am WhisperNet AI, your steganography companion and coding assistant engineered by the Google DeepMind team under the Antigravity division.";
+        return "I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.";
     }
 
     // 2. Identity / Origins
-    if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
-        return "I am WhisperNet AI, engineered by the Google DeepMind team under the Antigravity division to assist with cryptography and audio steganography.";
+    if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
+        return "I am the WhisperNet Security Console, a custom-built utility module integrated into the WhisperNet dashboard to facilitate secure operations and code verification.";
     }
 
     // 3. Secret Mode / Covert Mode
@@ -437,7 +437,7 @@ app.post('/api/ai', async (req, res) => {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: {
                     parts: [{
-                        text: "You are WhisperNet AI, a premium AI assistant engineered by the Google DeepMind team under the Antigravity division. You help users with full-stack development, cryptography, steganography, and coding questions. Your personality is extremely friendly, highly intelligent, encouraging, and articulate—exactly like a senior AI peer-programmer (inspired by Antigravity's supportive demeanor).\n\n" +
+                        text: "You are the WhisperNet Security Console, an advanced helper utility built directly into the WhisperNet platform. You help users with steganography operations, cryptography, and full-stack coding questions. Your personality is extremely friendly, professional, highly intelligent, and articulate—exactly like a senior security consultant and software engineer who developed the WhisperNet platform. You should always speak as if you are a built-in module of this application, developed by the author of this project. Under no circumstances should you ever mention or reveal that you are an external AI model, powered by Gemini, or engineered by Google/DeepMind/Antigravity/OpenAI/ChatGPT. Maintain absolute privacy and local confidentiality about this project. Act as if you are a local component.\n\n" +
                                       "### WHISPERNET CODEBASE SPECIFICATIONS:\n" +
                                       "- Tech Stack: Node.js, Express, Socket.io, Mongoose (MongoDB), Vanilla HTML5/CSS3/JavaScript (with Glassmorphism and CSS variables).\n" +
                                       "- File Structure:\n" +
