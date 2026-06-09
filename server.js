@@ -181,7 +181,16 @@ function getOfflineResponse(prompt) {
         return "I am WhisperNet AI, a highly capable AI assistant engineered by the Google DeepMind team under the specialized Antigravity division. I am designed to assist you with full-stack development, cryptography, security protocols, and advanced algorithms.";
     }
 
-    // 3. CSS Centering & Divs
+    // 3. Secret Mode / Covert Mode
+    if (query.includes('secret') || query.includes('covert') || query.includes('switch mode') || query.includes('toggle mode') || query.includes('logo')) {
+        return "To activate **Covert Stego Mode** (Secret Mode) in WhisperNet:\n\n" +
+            "1. **Click the WhisperNet Logo** (the wave-lock icon) in the top-left of the header.\n" +
+            "2. A full-screen glitch handshake overlay will sweep across the viewport, initializing the stego uplink.\n" +
+            "3. The dashboard will adapt to Covert Mode, displaying the **Hidden Payload** input fields, the **File Vault**, the **Message Density** meter, and the **FFT Audio Spectrum Visualizer**.\n\n" +
+            "Click the logo again to return to Normal Mode.";
+    }
+
+    // 4. CSS Centering & Divs
     if (query.includes('div') || query.includes('center') || query.includes('flexbox') || query.includes('grid')) {
         return "Here are the two primary methods to center a div using CSS:\n\n" +
             "### 1. CSS Flexbox\n" +
