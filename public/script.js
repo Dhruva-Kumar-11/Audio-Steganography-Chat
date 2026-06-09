@@ -1336,7 +1336,7 @@ carrierUpload.onchange = async (e) => {
         }
 
         // 2. Identity / Origins
-        if (query.includes('who are you') || query.includes('your name') || query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('what are you')) {
+        if (query.includes('who are you') || query.includes('your name') || query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('what are you') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
             return "I am WhisperNet AI, a highly capable AI assistant engineered by the Google DeepMind team under the specialized Antigravity division. I am designed to assist you with full-stack development, cryptography, security protocols, and advanced algorithms.";
         }
 
@@ -1766,7 +1766,7 @@ carrierUpload.onchange = async (e) => {
             await printAI(response);
         }
         // 8. Offline Q&A: Identity & Creators
-        else if (query.includes('who are you') || query.includes('tell me about yourself') || query.includes('what is your name') || query.includes('what are you') || query.includes('who made you') || query.includes('creator') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind')) {
+        else if (query.includes('who are you') || query.includes('tell me about yourself') || query.includes('what is your name') || query.includes('what are you') || query.includes('who made you') || query.includes('creator') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
             await printAI(
                 "🔒 IDENTITY SECURE // SECURE OFFLINE SYSTEM COMPANION\n" +
                 "I am WhisperNet AI, a high-intelligence cybersecurity companion built to guide you through steganographic operations and digital communications.\n\n" +

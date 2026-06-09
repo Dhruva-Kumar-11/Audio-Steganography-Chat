@@ -177,7 +177,7 @@ function getOfflineResponse(prompt) {
     }
 
     // 2. Identity / Origins
-    if (query.includes('who are you') || query.includes('your name') || query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('what are you')) {
+    if (query.includes('who are you') || query.includes('your name') || query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('antigravity') || query.includes('deepmind') || query.includes('what are you') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
         return "I am WhisperNet AI, a highly capable AI assistant engineered by the Google DeepMind team under the specialized Antigravity division. I am designed to assist you with full-stack development, cryptography, security protocols, and advanced algorithms.";
     }
 
