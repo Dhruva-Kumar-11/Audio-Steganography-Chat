@@ -347,6 +347,22 @@
         </div>
         
         <div class="drawer-body">
+            <!-- API Key Configuration Section -->
+            <div class="api-key-config" id="api-key-config">
+                <div class="api-key-header">
+                    <span class="api-key-status-dot" id="api-key-status-dot"></span>
+                    <span class="api-key-status-text" id="api-key-status-text">Offline Mode (Pattern Matcher)</span>
+                    <button class="btn-api-toggle" id="btn-api-toggle">Configure</button>
+                </div>
+                <div class="api-key-inputs" id="api-key-inputs" style="display: none;">
+                    <input type="password" id="drawer-gemini-key" placeholder="Enter Gemini API Key..." class="drawer-key-input">
+                    <div class="api-key-actions">
+                        <button type="button" id="btn-save-key" class="btn-api-save">Save</button>
+                        <button type="button" id="btn-clear-key" class="btn-api-clear">Delete</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="ai-terminal-feed" class="terminal-feed scrollable"></div>
             
             <div class="terminal-chips">
