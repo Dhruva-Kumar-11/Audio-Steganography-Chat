@@ -208,56 +208,80 @@ window.addEventListener("click", async (e) => {
             return;
         }
 
-        // Ask for key only if one was set; skip prompt for unprotected payloads
-        const pass = correctKey ? prompt('Enter decryption key:') : '';
-        if (pass === null) return; // user cancelled
+        let plaintext = "";
+        let isIncorrectKey = false;
 
-        const normalizedPass = pass || '';
-        const normalizedKey  = correctKey || '';
-
-        if (normalizedPass === normalizedKey) {
-            addToAuditLog("STEGO_PAYLOAD_DECRYPTED");
-            const reveal = document.createElement('div');
-            reveal.style.color = 'var(--electric-cyan)';
-            reveal.style.marginTop = '15px';
-            reveal.style.padding = '12px';
-            reveal.style.background = 'rgba(0, 242, 255, 0.05)';
-            reveal.style.border = '1px solid rgba(0, 242, 255, 0.1)';
-            reveal.style.fontFamily = 'Share Tech Mono, monospace';
-            reveal.style.fontWeight = 'bold';
-            reveal.style.position = 'relative';
+        if (finalSecretText.startsWith("RAW:")) {
+            plaintext = finalSecretText.substring(4);
+        } else if (finalSecretText.startsWith("ENC:")) {
+            const ciphertext = finalSecretText.substring(4);
+            const pass = prompt('Enter decryption key:');
+            if (pass === null) return; // user cancelled
             
-            const msgSpan = document.createElement('span');
-            msgSpan.textContent = `> INTERCEPTED: ${finalSecretText}`;
-            reveal.appendChild(msgSpan);
-
-            const timerSpan = document.createElement('span');
-            timerSpan.style.color = 'var(--vivid-magenta)';
-            timerSpan.style.marginLeft = '10px';
-            timerSpan.textContent = "[15s]";
-            reveal.appendChild(timerSpan);
-            
-            card.appendChild(reveal);
-            e.target.style.display = 'none';
-
-            let timeLeft = 15;
-            const countdown = setInterval(() => {
-                timeLeft--;
-                timerSpan.textContent = `[${timeLeft}s]`;
-                if (timeLeft <= 0) clearInterval(countdown);
-            }, 1000);
-
-            setTimeout(() => {
-                msgSpan.textContent = "> [DATA_PURGED]";
-                reveal.style.color = "#444";
-                reveal.style.borderColor = "#222";
-                timerSpan.remove();
-                setTimeout(() => reveal.remove(), 2000);
-            }, 15000);
+            try {
+                plaintext = await Security.decrypt(ciphertext, pass);
+            } catch (err) {
+                isIncorrectKey = true;
+            }
         } else {
+            // Backward compatibility
+            if (correctKey) {
+                const pass = prompt('Enter decryption key:');
+                if (pass === null) return; // user cancelled
+                if ((pass || '') === correctKey) {
+                    plaintext = finalSecretText;
+                } else {
+                    isIncorrectKey = true;
+                }
+            } else {
+                plaintext = finalSecretText;
+            }
+        }
+
+        if (isIncorrectKey) {
             addToAuditLog("AES_KEY_MISMATCH");
             if(window.showToast) window.showToast("ACCESS_DENIED: INVALID_AES_KEY", true);
+            return;
         }
+
+        addToAuditLog("STEGO_PAYLOAD_DECRYPTED");
+        const reveal = document.createElement('div');
+        reveal.style.color = 'var(--electric-cyan)';
+        reveal.style.marginTop = '15px';
+        reveal.style.padding = '12px';
+        reveal.style.background = 'rgba(0, 242, 255, 0.05)';
+        reveal.style.border = '1px solid rgba(0, 242, 255, 0.1)';
+        reveal.style.fontFamily = 'Share Tech Mono, monospace';
+        reveal.style.fontWeight = 'bold';
+        reveal.style.position = 'relative';
+        
+        const msgSpan = document.createElement('span');
+        msgSpan.textContent = `> INTERCEPTED: ${plaintext}`;
+        reveal.appendChild(msgSpan);
+
+        const timerSpan = document.createElement('span');
+        timerSpan.style.color = 'var(--vivid-magenta)';
+        timerSpan.style.marginLeft = '10px';
+        timerSpan.textContent = "[15s]";
+        reveal.appendChild(timerSpan);
+        
+        card.appendChild(reveal);
+        e.target.style.display = 'none';
+
+        let timeLeft = 15;
+        const countdown = setInterval(() => {
+            timeLeft--;
+            timerSpan.textContent = `[${timeLeft}s]`;
+            if (timeLeft <= 0) clearInterval(countdown);
+        }, 1000);
+
+        setTimeout(() => {
+            msgSpan.textContent = "> [DATA_PURGED]";
+            reveal.style.color = "#444";
+            reveal.style.borderColor = "#222";
+            timerSpan.remove();
+            setTimeout(() => reveal.remove(), 2000);
+        }, 15000);
     }
 });
 
@@ -334,9 +358,91 @@ function addToVault(audioUrl, filename) {
 }
 
 // ================================================================
+// === SECURE CRYPTOGRAPHY ENGINE (AES-256-GCM) ==================
+// ================================================================
+const Security = {
+    async encrypt(text, password) {
+        if (!password) return text;
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+        
+        // Derive key from password via PBKDF2
+        const passwordKey = await window.crypto.subtle.importKey(
+            "raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]
+        );
+        const key = await window.crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+            passwordKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt"]
+        );
+        
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encrypted = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            data
+        );
+        
+        const result = new Uint8Array(salt.byteLength + iv.byteLength + encrypted.byteLength);
+        result.set(salt, 0);
+        result.set(iv, salt.byteLength);
+        result.set(new Uint8Array(encrypted), salt.byteLength + iv.byteLength);
+        
+        // Browser-safe Base64 encoding
+        let binary = "";
+        const len = result.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(result[i]);
+        }
+        return btoa(binary);
+    },
+    async decrypt(base64Ciphertext, password) {
+        if (!password) return base64Ciphertext;
+        try {
+            const binary = atob(base64Ciphertext);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            
+            const salt = bytes.slice(0, 16);
+            const iv = bytes.slice(16, 28);
+            const ciphertext = bytes.slice(28);
+            
+            const encoder = new TextEncoder();
+            const passwordKey = await window.crypto.subtle.importKey(
+                "raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]
+            );
+            const key = await window.crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+                passwordKey,
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["decrypt"]
+            );
+            
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                ciphertext
+            );
+            return new TextDecoder().decode(decrypted);
+        } catch (e) {
+            throw new Error("INVALID_AES_KEY");
+        }
+    }
+};
+
+// ================================================================
 // === REAL LSB STEGANOGRAPHY ENGINE =============================
 // ================================================================
 const StegoEngine = {
+    // 16-bit Magic signature ("WN")
+    SIGNATURE_BITS: "0101011101001110",
+
     // Convert string to bit string
     strToBits: (str) => {
         return str.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join('');
@@ -360,6 +466,15 @@ const StegoEngine = {
             if (view.getUint32(0, false) === 0x52494646 && // "RIFF"
                 view.getUint32(8, false) === 0x57415645) { // "WAVE"
                 sampleRate = view.getUint32(24, true);
+            } else {
+                // Non-WAV file (MP3/WebM): decode once using standard context to read native sampleRate
+                try {
+                    const tempCtx = getAudioContext();
+                    const tempBuffer = await tempCtx.decodeAudioData(arrayBuffer.slice(0));
+                    sampleRate = tempBuffer.sampleRate;
+                } catch (e) {
+                    console.warn("Could not auto-detect native sample rate, defaulting to 44100Hz:", e);
+                }
             }
         }
         
@@ -367,18 +482,27 @@ const StegoEngine = {
         return await offlineCtx.decodeAudioData(arrayBuffer);
     },
     // Main Encoder: Returns a WAV Blob with hidden data
-    async encode(audioBlob, secretText) {
+    async encode(audioBlob, secretText, password) {
         if (!secretText) return audioBlob;
         
+        // Format payload to explicitly denote encryption status
+        let formattedPayload = "";
+        if (password) {
+            const cipher = await Security.encrypt(secretText, password);
+            formattedPayload = "ENC:" + cipher;
+        } else {
+            formattedPayload = "RAW:" + secretText;
+        }
+
         const audioBuffer = await this.decodeAudioExactly(audioBlob);
         
         // We use the first channel for stego
         const channelData = audioBuffer.getChannelData(0);
-        const bitString = this.strToBits(secretText);
+        const bitString = this.strToBits(formattedPayload);
         
         // Add a 32-bit length header
         const lengthHeader = bitString.length.toString(2).padStart(32, '0');
-        const finalBits = lengthHeader + bitString;
+        const finalBits = this.SIGNATURE_BITS + lengthHeader + bitString;
         
         if (finalBits.length > channelData.length) {
             throw new Error(`PAYLOAD_TOO_LARGE: Audio is too short for this message.`);
@@ -409,22 +533,33 @@ const StegoEngine = {
             const audioBuffer = await this.decodeAudioExactly(audioBlob);
             const channelData = audioBuffer.getChannelData(0);
             
-            // 1. Read 32-bit length header
+            // 1. Verify 16-bit signature "WN"
+            let sigBits = '';
+            for (let i = 0; i < 16; i++) {
+                let sample = Math.max(-0.9999, Math.min(0.9999, channelData[i]));
+                let intSample = Math.round(sample * 32768);
+                sigBits += (Math.abs(intSample) & 1).toString();
+            }
+            if (sigBits !== this.SIGNATURE_BITS) {
+                return null; // Magic signature mismatch, no stego payload
+            }
+
+            // 2. Read 32-bit length header
             let lengthBits = '';
-            for (let i = 0; i < 32; i++) {
+            for (let i = 16; i < 48; i++) {
                 let sample = Math.max(-0.9999, Math.min(0.9999, channelData[i]));
                 let intSample = Math.round(sample * 32768);
                 lengthBits += (Math.abs(intSample) & 1).toString();
             }
             const dataLength = parseInt(lengthBits, 2);
             
-            if (isNaN(dataLength) || dataLength <= 0 || dataLength > (channelData.length - 32)) {
-                return null; // No valid stego header found
+            if (isNaN(dataLength) || dataLength <= 0 || dataLength > (channelData.length - 48)) {
+                return null;
             }
             
-            // 2. Read data bits
+            // 3. Read data bits
             let dataBits = '';
-            for (let i = 32; i < 32 + dataLength; i++) {
+            for (let i = 48; i < 48 + dataLength; i++) {
                 let sample = Math.max(-0.9999, Math.min(0.9999, channelData[i]));
                 let intSample = Math.round(sample * 32768);
                 dataBits += (Math.abs(intSample) & 1).toString();
@@ -489,6 +624,17 @@ async function transmit(message, audioBlob) {
     const capturedPayload = secretInput.value || "";
     const capturedKey = keyInput.value || "";
 
+    // Prepare encrypted payload for metadata fallback
+    let formattedPayload = "";
+    if (capturedPayload) {
+        if (capturedKey) {
+            const cipher = await Security.encrypt(capturedPayload, capturedKey);
+            formattedPayload = "ENC:" + cipher;
+        } else {
+            formattedPayload = "RAW:" + capturedPayload;
+        }
+    }
+
     const sendPacket = (base64, mimeType) => {
         const packet = {
             sender: username,
@@ -496,8 +642,7 @@ async function transmit(message, audioBlob) {
             audioData: base64,
             audioMime: mimeType || (audioBlob ? audioBlob.type : null),
             type: 'STEGO_PACKET',
-            hidden_payload: capturedPayload, // metadata fallback for UI
-            aes_key: capturedKey
+            hidden_payload: formattedPayload // encrypted fallback, NO aes_key sent!
         };
         
         socket.emit('incoming-packet', packet);
@@ -508,11 +653,10 @@ async function transmit(message, audioBlob) {
             audio: packet.audioData,
             audioMime: packet.audioMime,
             sender: username,
-            hidden_payload: packet.hidden_payload,
-            aes_key: packet.aes_key
+            hidden_payload: packet.hidden_payload
         }, true);
 
-        // ... reset inputs ...
+        // reset inputs
         secretInput.value = '';
         keyInput.value = '';
         currentAudioBlob = null;
@@ -530,7 +674,7 @@ async function transmit(message, audioBlob) {
         try {
             addToAuditLog('ENCODING_LSB_BITS...');
             // Step 1: Actually hide the data in the audio samples
-            const stegoBlob = await StegoEngine.encode(audioBlob, capturedPayload);
+            const stegoBlob = await StegoEngine.encode(audioBlob, capturedPayload, capturedKey);
             // Step 2: Convert to base64 for transmission
             const reader = new FileReader();
             reader.onload = () => sendPacket(reader.result, stegoBlob.type);
@@ -552,7 +696,6 @@ function receive(packet) {
     let audioUrl = null;
     if (packet.audioData) {
         try {
-            // FIX: use the MIME type sent by the transmitter (was always hardcoded 'audio/wav')
             const mimeType = packet.audioMime || 'audio/webm';
             const base64Part = packet.audioData.includes(',') ? packet.audioData.split(',')[1] : packet.audioData;
             const binaryString = window.atob(base64Part);
@@ -569,83 +712,13 @@ function receive(packet) {
         }
     }
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'message-wrapper';
-    wrapper.style.alignSelf = 'flex-start';
-    wrapper.style.marginBottom = '20px';
-    if (packet.hidden_payload) {
-        wrapper.classList.add('stego-element');
-    }
-
-    const senderLabel = document.createElement('div');
-    senderLabel.className = 'sender-tag';
-    senderLabel.style.color = 'var(--electric-cyan)';
-    senderLabel.textContent = packet.sender || 'REMOTE_AGENT';
-    wrapper.appendChild(senderLabel);
-
-    const card = document.createElement('div');
-    card.className = 'message';
-    card.style.background = 'rgba(255, 255, 255, 0.03)';
-    card.style.borderLeft = '3px solid var(--electric-cyan)';
-
-    if (packet.text) {
-        const textDiv = document.createElement('div');
-        textDiv.textContent = packet.text;
-        card.appendChild(textDiv);
-    }
-
-    if (audioUrl) {
-        const label = document.createElement('div');
-        label.style.color = '#888';
-        label.style.fontSize = '10px';
-        label.style.fontWeight = '700';
-        label.style.marginTop = packet.text ? '12px' : '0';
-        label.style.marginBottom = '8px';
-        label.textContent = 'ENCRYPTED_DATA_PACKET';
-        card.appendChild(label);
-
-        const audio = document.createElement('audio');
-        audio.controls = true;
-        audio.src = audioUrl;
-        audio.style.width = '100%';
-        audio.style.height = '32px';
-        audio.load();
-        card.appendChild(audio);
-
-        const progContainer = document.createElement('div');
-        progContainer.className = 'progress-container';
-        progContainer.style.display = 'none';
-        const progBar = document.createElement('div');
-        progBar.className = 'progress-bar';
-        progContainer.appendChild(progBar);
-        card.appendChild(progContainer);
-
-        const decodeBtn = document.createElement('button');
-        decodeBtn.className = 'decode-btn';
-        decodeBtn.textContent = 'DECRYPT_PAYLOAD';
-        decodeBtn.style.marginTop = '12px';
-        decodeBtn.style.width = '100%';
-        
-        if (packet.hidden_payload) card.dataset.payload = packet.hidden_payload;
-        if (packet.aes_key) card.dataset.key = packet.aes_key;
-        
-        card.appendChild(decodeBtn);
-
-        // Add received stego audio to vault
-        if (packet.hidden_payload) {
-            addToVault(audioUrl, `REMOTE_CARRIER_${Date.now()}.webm`);
-        }
-    }
-
-    // Capture scroll state before appending
-    const isAtBottom = chatFeed.scrollHeight - chatFeed.scrollTop - chatFeed.clientHeight < 100;
-
-    wrapper.appendChild(card);
-    chatFeed.appendChild(wrapper);
-
-    if (isAtBottom) {
-        chatFeed.scrollTop = chatFeed.scrollHeight;
-    }
+    renderMessage({
+        text: packet.text,
+        audio: audioUrl,
+        audioMime: packet.audioMime,
+        sender: packet.sender,
+        hidden_payload: packet.hidden_payload
+    }, false);
 }
 
 function renderMessage(payload, isMe) {
@@ -719,7 +792,7 @@ function renderMessage(payload, isMe) {
         
         card.appendChild(decodeBtn);
         
-        // FIX: Add sent audio to vault too (not just incoming)
+        // Add carrier wav download link to vault
         if (payload.hidden_payload) {
             addToVault(payload.audio, `${isMe ? 'LOCAL' : 'INCOMING'}_CARRIER_${Date.now()}.wav`);
         }
