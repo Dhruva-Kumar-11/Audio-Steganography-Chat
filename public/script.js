@@ -1335,6 +1335,23 @@ carrierUpload.onchange = async (e) => {
             return "I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.";
         }
 
+        // 1b. Casual Social fallbacks
+        if (query.includes('thank') || query === 'nice' || query === 'cool' || query === 'awesome' || query === 'perfect' || query === 'great') {
+            return "You are welcome! Let me know if you need assistance with steganography operations or logic checks.";
+        }
+        if (query.includes('how are you') || query.includes('how is it going') || query.includes('how\'s it going')) {
+            return "I am operating at peak performance. All local security buffers are clear and stable.";
+        }
+        if (query.includes('are you human') || query.includes('are you real') || query.includes('are you a bot') || query.includes('are you a robot') || query.includes('are you an ai')) {
+            return "I am the built-in WhisperNet Security Console, running locally within this browser session.";
+        }
+        if (query.includes('who am i') || query.includes('do you know me')) {
+            return "You are an authenticated local agent participating in this secure chat session.";
+        }
+        if (query === 'yes' || query === 'no' || query === 'ok' || query === 'okay' || query === 'sure') {
+            return "Acknowledged. Security monitors are on standby.";
+        }
+
         // 2. What is WhisperNet (Project details)
         if (query.includes('what is whispernet') || query.includes('what is wisphernet') || query.includes('about whispernet') || query.includes('about wisphernet')) {
             return "WhisperNet is a secure audio steganography chat application that embeds encrypted payloads inside audio sample waves to mask network communications.";
