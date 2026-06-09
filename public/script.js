@@ -1335,8 +1335,13 @@ carrierUpload.onchange = async (e) => {
             return "I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.";
         }
 
-        // 2. Identity / Origins
-        if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
+        // 2. What is WhisperNet (Project details)
+        if (query.includes('what is whispernet') || query.includes('what is wisphernet') || query.includes('about whispernet') || query.includes('about wisphernet')) {
+            return "WhisperNet is a secure audio steganography chat application that embeds encrypted payloads inside audio sample waves to mask network communications.";
+        }
+
+        // 3. Identity / Origins
+        if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent')) {
             return "I am the WhisperNet Security Console, a custom-built utility module integrated into the WhisperNet dashboard to facilitate secure operations and code verification.";
         }
 
@@ -1790,8 +1795,15 @@ carrierUpload.onchange = async (e) => {
             }
             await printAI(response);
         }
-        // 8. Offline Q&A: Identity & Creators
-        else if (query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('tell me about yourself') || query.includes('what is your name') || query.includes('what are you') || query.includes('who made you') || query.includes('creator') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
+        // 8. Offline Q&A: What is WhisperNet (Project description)
+        else if (query.includes('what is whispernet') || query.includes('what is wisphernet') || query.includes('about whispernet') || query.includes('about wisphernet')) {
+            await printAI(
+                "🔒 WHISPERNET SYSTEM DESCRIPTION // SECURITY COMPANION\n" +
+                "WhisperNet is a secure audio steganography chat application that embeds encrypted payloads inside audio sample waves to mask network communications."
+            );
+        }
+        // 8b. Offline Q&A: Identity & Creators
+        else if (query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('tell me about yourself') || query.includes('what is your name') || query.includes('what are you') || query.includes('who made you') || query.includes('creator') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent')) {
             await printAI(
                 "🔒 IDENTITY SECURE // SECURE OFFLINE SYSTEM COMPANION\n" +
                 "I am the WhisperNet Security Console, a custom helper module integrated into the WhisperNet dashboard to facilitate secure operations, cryptography, and coding checks.\n\n" +

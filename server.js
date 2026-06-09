@@ -176,8 +176,13 @@ function getOfflineResponse(prompt) {
         return "I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.";
     }
 
-    // 2. Identity / Origins
-    if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent') || query.includes('whispernet') || query.includes('wisphernet')) {
+    // 2. What is WhisperNet (Project details)
+    if (query.includes('what is whispernet') || query.includes('what is wisphernet') || query.includes('about whispernet') || query.includes('about wisphernet')) {
+        return "WhisperNet is a secure audio steganography chat application that embeds encrypted payloads inside audio sample waves to mask network communications.";
+    }
+
+    // 3. Identity / Origins
+    if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent')) {
         return "I am the WhisperNet Security Console, a custom-built utility module integrated into the WhisperNet dashboard to facilitate secure operations and code verification.";
     }
 
