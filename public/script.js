@@ -1872,7 +1872,7 @@ carrierUpload.onchange = async (e) => {
             await printAI("🔒 WHISPERNET_AI CONSOLE // DECRYPTED SECURE JOKE:\n\n" + selectedJoke);
         }
         // 13. General Cyber Greetings
-        else if (query.includes('hi') || query.includes('hello') || query.includes('hey')) {
+        else if (/\b(hi|hello|hey|greetings)\b/i.test(query) || query.includes('how are you')) {
             await printAI(
                 "Greetings, Agent. I am the WhisperNet AI Secure Companion.\n" +
                 "I scan your live interface context to guide you through LSB steganography and traffic security. Type /help to see all commands!"
