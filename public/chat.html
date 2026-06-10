@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="chat2.css">
+    <!-- Markdown & Syntax Highlighting -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 </head>
 <body>
     <!-- Covert Handshake Full-Screen Glitch Overlay -->
@@ -375,6 +379,7 @@
             </div>
             
             <form id="ai-terminal-form" class="terminal-form" onsubmit="event.preventDefault();">
+                <button type="button" id="ai-mic-btn" class="btn-ai-mic" title="Voice Input">🎙️</button>
                 <input type="text" id="ai-terminal-input" placeholder="Ask WhisperNet AI or type a command..." autocomplete="off" class="terminal-input">
                 <button type="submit" id="ai-terminal-btn" class="btn-terminal-submit">RUN</button>
             </form>

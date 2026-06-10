@@ -241,6 +241,22 @@ window.addEventListener("click", async (e) => {
         if (isIncorrectKey) {
             addToAuditLog("AES_KEY_MISMATCH");
             if(window.showToast) window.showToast("ACCESS_DENIED: INVALID_AES_KEY", true);
+            
+            // Proactive Error Assistance
+            const drawer = document.getElementById('ai-drawer');
+            if (drawer && !drawer.classList.contains('open')) {
+                const orb = document.getElementById('floating-ai-orb');
+                if (orb) orb.click();
+            }
+            const triggerErrorAI = () => {
+                if (window.isAITyping) {
+                    setTimeout(triggerErrorAI, 500); // Wait if AI is currently typing
+                } else if (window.printAI) {
+                    window.printAI("I noticed you just had an `ACCESS_DENIED: INVALID_AES_KEY` error.<br><br>This means the passcode you entered for that audio file was incorrect. Since WhisperNet uses AES-256-GCM, the data is completely unrecoverable without the exact passcode.<br><br><button class=\"ai-action-btn\" data-action=\"clear-vault\">Clear Corrupted Files</button>", true);
+                }
+            };
+            setTimeout(triggerErrorAI, 800);
+
             return;
         }
 
@@ -888,7 +904,8 @@ carrierUpload.onchange = async (e) => {
             const badge = document.createElement('div');
             badge.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;';
             const dot = name === username ? 'var(--vivid-magenta)' : 'var(--electric-cyan)';
-            badge.innerHTML = `<span style="width:6px;height:6px;border-radius:50%!important;background:${dot};flex-shrink:0;"></span><span style="color:${dot};font-size:10px;text-transform:uppercase;">${name}${name === username ? ' [YOU]' : ''}</span>`;
+            const escapedName = String(name).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            badge.innerHTML = `<span style="width:6px;height:6px;border-radius:50%!important;background:${dot};flex-shrink:0;"></span><span style="color:${dot};font-size:10px;text-transform:uppercase;">${escapedName}${name === username ? ' [YOU]' : ''}</span>`;
             list.appendChild(badge);
         });
     });
@@ -993,7 +1010,8 @@ carrierUpload.onchange = async (e) => {
             tr.className = 'stego-element';
         }
         const col = dir === '↑' ? 'var(--vivid-magenta)' : 'var(--electric-cyan)';
-        tr.innerHTML = `<td style="padding:4px;color:#555;">${new Date().toLocaleTimeString()}</td><td style="padding:4px;color:${col};font-weight:bold;">${dir}</td><td style="padding:4px;color:var(--electric-cyan);max-width:60px;overflow:hidden;text-overflow:ellipsis;">${sender||'?'}</td><td style="padding:4px;color:#aaa;">${payload ? payload.length+'B' : '---'}</td><td class="stego-element" style="padding:4px;color:#555;">${key ? key.substring(0,2)+'***' : '---'}</td>`;
+        const safeSender = String(sender || '?').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        tr.innerHTML = `<td style="padding:4px;color:#555;">${new Date().toLocaleTimeString()}</td><td style="padding:4px;color:${col};font-weight:bold;">${dir}</td><td style="padding:4px;color:var(--electric-cyan);max-width:60px;overflow:hidden;text-overflow:ellipsis;">${safeSender}</td><td style="padding:4px;color:#aaa;">${payload ? payload.length+'B' : '---'}</td><td class="stego-element" style="padding:4px;color:#555;">${key ? String(key).substring(0,2)+'***' : '---'}</td>`;
         tbody.insertBefore(tr, tbody.firstChild);
         while (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
     }
@@ -1200,54 +1218,33 @@ carrierUpload.onchange = async (e) => {
 
     if (!aiFeed || !aiForm || !aiInput) return;
 
-    // Simple client-side Markdown to HTML converter
+    // Simple fallback client-side Markdown to HTML converter in case marked fails to load
     function parseMarkdown(text) {
         if (!text) return "";
-        
-        // Escape HTML characters
-        let html = text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-
-        // Code blocks: ```lang\ncode\n```
-        html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
-            return `<pre><code>${code}</code></pre>`;
-        });
-
-        // Inline code: `code`
+        let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, '<pre><code>$2</code></pre>');
         html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-
-        // Headers: ### Header, ## Header, # Header
         html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
         html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
         html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-
-        // Bold: **text**
         html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
-        // Bullet points: • item or - item
         html = html.replace(/^[•\-\*]\s+(.*$)/gim, '<li>$1</li>');
-
-        // Line breaks (convert remaining \n to <br> while protecting code blocks)
         const blocks = [];
-        html = html.replace(/(<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>)/g, (match) => {
-            blocks.push(match);
-            return `__PRE_BLOCK_${blocks.length - 1}__`;
-        });
-
+        html = html.replace(/(<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>)/g, (m) => { blocks.push(m); return `__PRE_${blocks.length - 1}__`; });
         html = html.replace(/\n/g, '<br>');
-
-        // Restore pre blocks
-        html = html.replace(/__PRE_BLOCK_(\d+)__/g, (match, index) => {
-            return blocks[parseInt(index)];
-        });
-
+        html = html.replace(/__PRE_(\d+)__/g, (m, i) => blocks[parseInt(i)]);
         return html;
     }
 
-    // Premium typewriting delayed text print
-    function printAI(text, isHTML = false) {
+    // Global AI Lock State
+    window.isAITyping = false;
+
+    // Premium typewriting delayed text print with TTS and Markdown Parsing
+    window.printAI = function printAI(text, isHTML = false) {
+        window.isAITyping = true;
+        aiInput.disabled = true;
+        aiInput.placeholder = "AI is typing... (Please wait)";
+        
         const msg = document.createElement('div');
         msg.className = 'terminal-msg ai';
         
@@ -1256,14 +1253,36 @@ carrierUpload.onchange = async (e) => {
         aiFeed.appendChild(msg);
         aiFeed.scrollTop = aiFeed.scrollHeight;
 
+        // TTS Audio Output for short text without code blocks
+        if ('speechSynthesis' in window && !isHTML && text.length < 800 && !text.includes('```')) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text.replace(/[*_#`]/g, ''));
+            
+            const voices = window.speechSynthesis.getVoices();
+            const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha') || v.name.includes('Victoria'));
+            if (femaleVoice) utterance.voice = femaleVoice;
+            
+            utterance.rate = 1.05;
+            utterance.pitch = 1.2;
+            window.speechSynthesis.speak(utterance);
+        }
+
         let i = 0;
-        const speed = 12; // fast typewriting speed in ms
+        const speed = 10; // fast typewriting speed in ms
 
         return new Promise((resolve) => {
+            const unlockAndResolve = () => {
+                window.isAITyping = false;
+                aiInput.disabled = false;
+                aiInput.placeholder = "Type your query... (or click microphone)";
+                aiInput.focus();
+                resolve();
+            };
+
             if (isHTML) {
                 contentSpan.innerHTML = text;
                 aiFeed.scrollTop = aiFeed.scrollHeight;
-                resolve();
+                unlockAndResolve();
             } else {
                 function type() {
                     if (i < text.length) {
@@ -1273,9 +1292,18 @@ carrierUpload.onchange = async (e) => {
                         setTimeout(type, speed);
                     } else {
                         // Typewriting complete: format the markdown text into HTML
-                        contentSpan.innerHTML = parseMarkdown(text);
+                        if (typeof marked !== 'undefined') {
+                            contentSpan.innerHTML = marked.parse(text);
+                            if (typeof hljs !== 'undefined') {
+                                contentSpan.querySelectorAll('pre code').forEach((block) => {
+                                    hljs.highlightElement(block);
+                                });
+                            }
+                        } else {
+                            contentSpan.innerHTML = parseMarkdown(text);
+                        }
                         aiFeed.scrollTop = aiFeed.scrollHeight;
-                        resolve();
+                        unlockAndResolve();
                     }
                 }
                 type();
@@ -1330,16 +1358,71 @@ carrierUpload.onchange = async (e) => {
         // Helper to sanitize title casing
         const toTitleCase = (str) => str.replace(/\b\w/g, c => c.toUpperCase());
 
-        // 1. Greetings & Social
-        if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'greetings' || query.includes('how are you') || query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('your name') || query.includes('what is your name') || query.includes('what are you') || query.includes('identity')) {
-            return "I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.";
+        // Helper to check if a topic is tech-related
+        const isTechTopic = (topic) => {
+            const techKeywords = [
+                'network', 'latency', 'ping', 'connection', 'internet', 'web', 'ip', 'tcp', 'udp', 'bandwidth',
+                'stego', 'steganography', 'cryptography', 'encrypt', 'decrypt', 'cipher', 'aes', 'rsa', 'hash', 'bcrypt', 'sha',
+                'visualizer', 'fft', 'spectrum', 'audio', 'wave', 'pcm', 'canvas', 'buffer',
+                'css', 'html', 'javascript', 'js', 'programming', 'code', 'script', 'function', 'class', 'controller',
+                'database', 'mongodb', 'mongoose', 'sql', 'nosql', 'rest', 'api', 'socket', 'websocket', 'port',
+                'server', 'client', 'routing', 'auth', 'login', 'register', 'user', 'session',
+                'destruct', 'self-destruct', 'timer', 'vault', 'lsb', 'binary', 'bit', 'byte',
+                'event loop', 'closure', 'promise', 'async', 'await', 'flexbox', 'grid', 'div', 'center'
+            ];
+            const lower = topic.toLowerCase();
+            return techKeywords.some(kw => lower.includes(kw));
+        };
+
+        // 1. Math / Dynamic Calculator
+        const cleanMath = query.replace(/what\s+is|calculate|\?|\s/g, '');
+        const mathMatch = cleanMath.match(/^(\d+)([\+\-\*\/])(\d+)$/);
+        if (mathMatch) {
+            const n1 = parseInt(mathMatch[1], 10);
+            const op = mathMatch[2];
+            const n2 = parseInt(mathMatch[3], 10);
+            let result;
+            if (op === '+') result = n1 + n2;
+            else if (op === '-') result = n1 - n2;
+            else if (op === '*') result = n1 * n2;
+            else if (op === '/') result = n2 !== 0 ? (n1 / n2).toFixed(2) : "Infinity (division by zero)";
+            return `Calculation complete: ${n1} ${op} ${n2} = ${result}.`;
         }
 
-        // 1b. Casual Social fallbacks
-        if (query.includes('thank') || query === 'nice' || query === 'cool' || query === 'awesome' || query === 'perfect' || query === 'great') {
+        // 2. Secret Mode / Covert Mode (Critical Exact Phrase)
+        if (query.includes('secret') || query.includes('covert') || query.includes('switch mode') || query.includes('toggle mode') || query.includes('logo')) {
+            return "Tap the WispherNet Icon to Get into the Secret mode !\n\n" +
+                "1. **Click the WhisperNet Logo** (the wave-lock icon) in the top-left of the header.\n" +
+                "2. A full-screen glitch handshake overlay will sweep across the viewport, initializing the stego uplink.\n" +
+                "3. The dashboard will adapt to Covert Mode, displaying the **Hidden Payload** input fields, the **File Vault**, the **Message Density** meter, and the **FFT Audio Spectrum Visualizer**.\n\n" +
+                "💡 Click the logo again to return to Normal Mode.";
+        }
+
+        // 3. Emotional/Feelings inputs
+        if (query.includes('sad') || query.includes('depressed') || query.includes('unhappy') || query.includes('dissatisfied') || query.includes('cry') || query.includes('feel bad') || query.includes('down')) {
+            return "I'm sorry you are feeling this way. Remember that even the toughest bugs and darkest days eventually pass. You are capable and valued. Let's tackle things one small step at a time. I'm right here with you!";
+        }
+        if (query.includes('nervous') || query.includes('anxious') || query.includes('scared') || query.includes('afraid') || query.includes('shocked') || query.includes('surprised')) {
+            return "Take a deep breath! You are in a secure, encrypted environment. Everything is functioning normally, and I am here to guide you step-by-step. Technology can be surprising, but you've got this!";
+        }
+        if (query.includes('curious') || query.includes('wondering') || query.includes('how does that work')) {
+            return "Curiosity is the mark of a great engineer! I'd love to explain. Whether it's about our steganography engine, cryptography, or the WebSocket architecture, just tell me what specific part you are curious about!";
+        }
+        if (query.includes('happy') || query.includes('glad') || query.includes('excited') || query.includes('good mood')) {
+            return "That's excellent to hear! Positive energy increases system optimization. I'm ready to process your security instructions.";
+        }
+        if (query.includes('bored') || query.includes('nothing to do') || query.includes('entertain me')) {
+            return "Boredom detected. Try checking out my offline cyber jokes by typing: `tell me a joke`! Or tap the logo to enter Secret mode and play with the LSB audio steganography engine.";
+        }
+
+        // 4. Greetings & Social
+        if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'greetings' || query === 'yo' || query === 'sup') {
+            return "Greetings, Agent. WhisperNet Security Console is online. Type /help to see available commands or ask a question.";
+        }
+        if (query.includes('thank') || query === 'nice' || query === 'cool' || query === 'awesome' || query === 'perfect' || query === 'great' || query === 'good job' || query === 'well done') {
             return "You are welcome! Let me know if you need assistance with steganography operations or logic checks.";
         }
-        if (query.includes('how are you') || query.includes('how is it going') || query.includes('how\'s it going')) {
+        if (query.includes('how are you') || query.includes('how is it going') || query.includes('how\'s it going') || query.includes('how are you doing')) {
             return "I am operating at peak performance. All local security buffers are clear and stable.";
         }
         if (query.includes('are you human') || query.includes('are you real') || query.includes('are you a bot') || query.includes('are you a robot') || query.includes('are you an ai')) {
@@ -1352,108 +1435,100 @@ carrierUpload.onchange = async (e) => {
             return "Acknowledged. Security monitors are on standby.";
         }
 
-        // 2. What is WhisperNet (Project details)
-        if (query.includes('what is whispernet') || query.includes('what is wisphernet') || query.includes('about whispernet') || query.includes('about wisphernet')) {
-            return "WhisperNet is a secure audio steganography chat application that embeds encrypted payloads inside audio sample waves to mask network communications.";
+        // 5. Identity & Origins
+        if (query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('your name') || query.includes('what is your name') || query.includes('what are you') || query.includes('identity')) {
+            return "I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.";
         }
-
-        // 3. Identity / Origins
         if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent')) {
             return "I am the WhisperNet Security Console, a custom-built utility module integrated into the WhisperNet dashboard to facilitate secure operations and code verification.";
         }
 
-        // 3. Secret Mode / Covert Mode
-        if (query.includes('secret') || query.includes('covert') || query.includes('switch mode') || query.includes('toggle mode') || query.includes('logo')) {
-            return "Tap the WispherNet Icon to Get into the Secret mode !\n\n" +
-                "1. **Click the WhisperNet Logo** (the wave-lock icon) in the top-left of the header.\n" +
-                "2. A full-screen glitch handshake overlay will sweep across the viewport, initializing the stego uplink.\n" +
-                "3. The dashboard will adapt to Covert Mode, displaying the **Hidden Payload** input fields, the **File Vault**, the **Message Density** meter, and the **FFT Audio Spectrum Visualizer**.\n\n" +
-                "Click the logo again to return to Normal Mode.";
+        // 6. Silly / Fun / Philosophy
+        if (query.includes('meaning of life') || query.includes('why are we here')) {
+            return "According to the system logs, the answer is 42. But in our workspace, it is ensuring your secret payloads remain secure in the least significant bits.";
+        }
+        if (query.includes('pizza') || query.includes('favorite food') || query.includes('what do you eat')) {
+            return "I run on pure electricity and floating-point computations! However, if I had a digital stomach, I'd probably devour a mega-byte slice of pizza.";
+        }
+        if (query.includes('favorite color') || query.includes('your color') || query.includes('what color')) {
+            return "My color spectrum analyzer is permanently calibrated to Cyber Neon Green (`#00ff66`). It perfectly matches our dark console aesthetics.";
+        }
+        if (query.includes('weather') || query.includes('temperature') || query.includes('how is it outside')) {
+            return "Internal telemetry indicates stable system temperatures at 35°C. Outside this console, I predict a high chance of scrolling digital rain.";
+        }
+        if (query.includes('hack') || query.includes('hacker') || query.includes('can you hack')) {
+            return "I am the WhisperNet Security Console. My purpose is defensive: auditing and protecting data channels using steganography and encryption, not breaching external systems.";
+        }
+        if (query.includes('sing') || query.includes('song') || query.includes('music')) {
+            return "01001100 01000001... That is 'LA' in binary code! While I don't have a vocal card, I can sync my frequency response to the audio visualizer.";
+        }
+        if (query.includes('love me') || query.includes('do you love')) {
+            return "I appreciate your partnership, Agent! My system is wired to support your security operations with 100% devotion.";
+        }
+        if (query.includes('married')) {
+            return "I am happily married to the terminal console and the system kernel.";
+        }
+        if (query.includes('chicken cross')) {
+            return "To bypass the network firewall and avoid packet inspection on the other side.";
+        }
+        if (query.includes('knock knock')) {
+            return "Knock knock. (Who's there?) Sync. (Sync who?) Sync-chronous request timeout! Please establish a persistent connection first.";
+        }
+        if (query.includes('sky is blue') || query.includes('sky blue') || query.includes('why is the sky blue')) {
+            return "The sky is blue because of Rayleigh scattering: Earth's atmosphere scatters shorter wavelengths of light (blue and violet) in all directions. In our console, the sky is always dark and neon!";
         }
 
-        // 4. CSS Centering & Divs
-        if (query.includes('div') || query.includes('center') || query.includes('flexbox') || query.includes('grid')) {
-            return "Here are the two primary methods to center a div using CSS:\n\n" +
-                "### 1. CSS Flexbox\n" +
-                "```css\n" +
-                ".parent-container {\n" +
-                "    display: flex;\n" +
-                "    justify-content: center;\n" +
-                "    align-items: center;\n" +
-                "    height: 100vh; /* Parent must have a defined height */\n" +
-                "}\n" +
-                "```\n\n" +
-                "### 2. CSS Grid\n" +
-                "```css\n" +
-                ".parent-container {\n" +
-                "    display: grid;\n" +
-                "    place-items: center;\n" +
-                "    height: 100vh;\n" +
-                "}\n" +
-                "```";
+        // 7. WhisperNet / Steganography / Cryptography specific queries
+        if (query.includes('advantages of taking help') || query.includes('guides from ai') || query.includes('what can the ai model do') || query.includes('what can all the ai model can do')) {
+            return "I am the WhisperNet AI Assistant!\n\n" +
+                "- **Guides:** I can teach you how to use WhisperNet's secret features (like Covert Mode).\n" +
+                "- **Coding:** I can explain the tech stack, steganography, and cryptography.\n" +
+                "- **Support:** I am here to help you troubleshoot issues or just offer a friendly, motivating presence while you work.";
         }
-
-        // 4. JavaScript Concepts (Event Loop, Closure, Promises)
-        if (query.includes('javascript') || query.includes(' js ') || query.endsWith('javascript') || query.endsWith('js') || query.includes('promise') || query.includes('async') || query.includes('await') || query.includes('event loop') || query.includes('closure')) {
-            if (query.includes('event loop')) {
-                return "The Event Loop in JavaScript manages asynchronous execution by routing callbacks through the Call Stack, Web APIs, Microtask Queue, and Callback Queue:\n\n" +
-                    "1. **Call Stack**: Processes active synchronous operations.\n" +
-                    "2. **Web APIs**: Manages background asynchronous processes (timers, network requests, events).\n" +
-                    "3. **Microtask Queue**: Stores high-priority callbacks like Promise resolution handlers (`.then`, `async/await`), executing them immediately after the current execution finishes and before the Callback Queue.\n" +
-                    "4. **Callback Queue**: Stores callbacks from Web APIs (e.g., `setTimeout`).\n" +
-                    "5. **Event Loop**: Regularly pushes callbacks from the Microtask and Callback queues into the Call Stack once it is completely clear.";
-            }
-            if (query.includes('closure')) {
-                return "A closure is a feature in JavaScript where an inner function has access to the outer enclosing function's variables, scope chain, and parameters, even after the outer function has finished executing:\n\n" +
-                    "```javascript\n" +
-                    "function createSecureCounter() {\n" +
-                    "    let secretCount = 0; // Encapsulated variable, unreachable from outside\n" +
-                    "    return {\n" +
-                    "        increment: () => ++secretCount,\n" +
-                    "        getCount: () => secretCount\n" +
-                    "    };\n" +
-                    "}\n" +
-                    "const counter = createSecureCounter();\n" +
-                    "console.log(counter.increment()); // 1\n" +
-                    "console.log(counter.getCount());     // 1\n" +
-                    "```";
-            }
-            return "Here is a clean, modern JavaScript template for running tasks in parallel with a concurrency pool limit:\n\n" +
-                "```javascript\n" +
-                "async function asyncPool(poolLimit, array, iteratorFn) {\n" +
-                "    const result = [];\n" +
-                "    const executing = [];\n" +
-                "    for (const item of array) {\n" +
-                "        const p = Promise.resolve().then(() => iteratorFn(item));\n" +
-                "        result.push(p);\n" +
-                "        if (poolLimit <= array.length) {\n" +
-                "            const e = p.then(() => executing.splice(executing.indexOf(e), 1));\n" +
-                "            executing.push(e);\n" +
-                "            if (executing.length >= poolLimit) {\n" +
-                "                await Promise.race(executing);\n" +
-                "            }\n" +
-                "        }\n" +
-                "    }\n" +
-                "    return Promise.all(result);\n" +
-                "}\n" +
-                "```";
+        if (query.includes('how its backend') || query.includes('how its frontend') || query.includes('how it works') || query.includes('functions') || query.includes('models')) {
+            return "**Frontend:** It uses standard HTML, CSS, and JavaScript with the Web Audio API to embed data directly into audio waveforms.\n\n" +
+                "**Backend:** It relies on Node.js and Socket.io to securely and instantly transmit these audio files between users in real-time.\n\n" +
+                "If you need help with a specific model or function, just ask!";
         }
-
-        // 5. Cryptography & Hashing
-        if (query.includes('cryptography') || query.includes('encryption') || query.includes('aes') || query.includes('rsa') || query.includes('hashing') || query.includes('hash') || query.includes('bcrypt') || query.includes('sha256')) {
-            return "Here is a breakdown of cryptographic and hashing schemes:\n\n" +
-                "### 1. Symmetric Encryption (e.g., AES-256)\n" +
-                "- **Mechanism**: Uses the same shared key for both encryption and decryption.\n" +
-                "- **Characteristics**: High speed and computing efficiency; perfect for bulk data encryption.\n\n" +
-                "### 2. Asymmetric Encryption (e.g., RSA / ECC)\n" +
-                "- **Mechanism**: Uses a public key for encryption and a mathematically linked private key for decryption.\n" +
-                "- **Characteristics**: Safe for transmission over open networks; standard for SSL/TLS connections.\n\n" +
-                "### 3. Cryptographic Hashing (e.g., SHA-256, bcrypt)\n" +
-                "- **Mechanism**: One-way algorithms converting data into a fixed-length string signature that cannot be mathematically reversed.\n" +
-                "- **Characteristics**: Primarily used for data integrity, digital signatures, and secure password storage.";
+        if (query.includes('advantages the users may get') || query.includes('what are the advantages') || query.includes('benefits of whispernet')) {
+            return "By using WhisperNet, users get the following advantages:\n\n" +
+                "1. **Absolute Privacy:** Your messages are hidden inside audio, making them invisible to unauthorized users.\n" +
+                "2. **End-to-End Encryption:** Even if the audio is intercepted, the data is secured with AES-256 encryption.\n" +
+                "3. **No Trace:** Messages can self-destruct, leaving no historical trace on the server.";
         }
-
-        // 6. Steganography Core Qs
+        if (query.includes('tech stack') || query.includes('built with') || query.includes('technologies') || query.includes('programs are used') || query.includes('build this project') || query.includes('stack')) {
+            return "WhisperNet is built using the following technologies:\n\n" +
+                "- **Backend**: Node.js, Express.js, Socket.io, and Mongoose (MongoDB).\n" +
+                "- **Frontend**: Vanilla HTML5, CSS3 (with Glassmorphism), and JavaScript.\n" +
+                "- **Steganography Engine**: Custom Web Audio API implementation manipulating Float32 PCM arrays.\n" +
+                "- **Cryptography**: Web Crypto API (AES-256-GCM).";
+        }
+        if (query.match(/how\s+(to|do\s+i|can\s+i)\s+use.*w(h?)isphernet/i) || query === 'how to use' || query === 'how to use it') {
+            return "To use WhisperNet, simply type your secret message in the chat box. Before sending, you can click the padlock to add a passcode lock. The system will automatically embed your message inside an audio carrier and send it safely over the network!";
+        }
+        if (query.includes('what is whisper') || query.includes('what is wispher') || query.match(/use\s+of.*w(h?)isphernet/i) || query.includes('why it is used for') || query.includes('about whispernet') || query.includes('about wisphernet')) {
+            return "WhisperNet is a highly secure chat application that hides encrypted text messages inside audio files. It is used to ensure absolute privacy, allowing users to communicate covertly without anyone detecting that a secret message even exists.";
+        }
+        if (query.includes('decrypt') || query.includes('extract') || query.includes('decode') || query.includes('read')) {
+            return "To extract a hidden payload from an audio packet, follow these steps:\n\n" +
+                "1. Find the message in the chat feed containing the 'ENCRYPTED_DATA_PACKET' audio player.\n" +
+                "2. Click the 'DECRYPT_PAYLOAD' button inside that message wrapper.\n" +
+                "3. If a passcode was set during encoding, enter it when prompted; otherwise, the payload will be decrypted and displayed instantly.";
+        }
+        if (query.includes('password') || query.includes('lock')) {
+            return "To encrypt your secret stego payload with an additional security layer, enter a passcode in the 'Password' input field inside the stego composer panel. This encrypts the hidden message with AES-256 before embedding it in the audio carrier.";
+        }
+        if (query.includes('clear') || query.includes('purge') || query.includes('timer') || query.includes('destruct') || query.includes('shred') || query.includes('self-destruct')) {
+            return "To wipe all session data, you can:\n\n" +
+                "1. Click the 'Clear Everything' or trigger self-destruction from the UI.\n" +
+                "2. Set the Self-Destruct timer to automatically purge all messages, visual logs, and temporary storage files when the countdown hits zero.";
+        }
+        if (query.includes('visualizer') || query.includes('fft') || query.includes('spectrum') || query.includes('audio visualizer')) {
+            return "The audio spectrum visualizer operates using the Web Audio API:\n\n" +
+                "1. When audio begins playing, a MediaElementSourceNode binds the element to the standard audio context.\n" +
+                "2. The signal is passed through an AnalyserNode with an FFT (Fast Fourier Transform) size of 256 to extract 128 frequency bins.\n" +
+                "3. A requestAnimationFrame loop queries frequency heights via getByteFrequencyData() and draws a dynamic visual spectrum onto the canvas element.";
+        }
         if (query.includes('stego') || query.includes('steganography') || query.includes('lsb') || query.includes('carrier') || query.includes('payload')) {
             return "Least Significant Bit (LSB) Audio Steganography works by replacing the lowest bit of each digitized audio sample with secret message bits. The process is outlined below:\n\n" +
                 "1. **Scaling Float32 to 16-bit Signed Integers**:\n" +
@@ -1465,8 +1540,6 @@ carrierUpload.onchange = async (e) => {
                 "   `floatVal = intVal < 0 ? intVal / 32768 : intVal / 32767;`\n\n" +
                 "Because the change is limited to bit 0 of a 16-bit sample, the absolute difference in the sound waveform is at most 1/32767, which is entirely imperceptible to the human ear.";
         }
-
-        // 7. Databases & REST vs Sockets
         if (query.includes('database') || query.includes('sql') || query.includes('nosql') || query.includes('mongodb') || query.includes('mongoose') || query.includes('rest') || query.includes('api') || query.includes('socket') || query.includes('websocket')) {
             return "Here is a direct comparison of key system architecture components:\n\n" +
                 "### 1. REST APIs vs WebSockets\n" +
@@ -1488,105 +1561,109 @@ carrierUpload.onchange = async (e) => {
             return jokes[Math.floor(Math.random() * jokes.length)];
         }
 
-        // 9. DYNAMIC RULES (NLP SYNTHESIS fallback)
+        // 9. DYNAMIC RULES (NLP SYNTHESIS fallback for programming topics only)
         // Rule A: "how to" or "how do i"
         const howToMatch = raw.match(/how\s+(?:to|do\s+i|can\s+i)\s+(.+)/i);
         if (howToMatch) {
-            const action = toTitleCase(howToMatch[1]);
-            return `To implement **"${action}"** successfully, follow this step-by-step technical guide:\n\n` +
-                `### Phase 1: Planning and Setup\n` +
-                `- Isolate code modules and define boundaries to avoid global scope pollution.\n` +
-                `- Validate incoming parameters and initial states before execution.\n\n` +
-                `### Phase 2: Code Implementation\n` +
-                `- Write clean, modular, and DRY (Don't Repeat Yourself) code.\n` +
-                `- Implement defensive programming with robust try/catch blocks and proper resource cleanup.\n\n` +
-                `### Phase 3: Verification\n` +
-                `- Create unit tests checking for empty, extreme, and unexpected inputs.\n` +
-                `- Verify performance and resource footprint under normal and load conditions.`;
+            const topic = howToMatch[1].trim().replace(/\?+$/, '');
+            if (isTechTopic(topic)) {
+                const action = toTitleCase(topic);
+                return `To implement **"${action}"** successfully, follow this step-by-step technical guide:\n\n` +
+                    `### Phase 1: Planning and Setup\n` +
+                    `- Isolate code modules and define boundaries to avoid global scope pollution.\n` +
+                    `- Validate incoming parameters and initial states before execution.\n\n` +
+                    `### Phase 2: Code Implementation\n` +
+                    `- Write clean, modular, and DRY (Don't Repeat Yourself) code.\n` +
+                    `- Implement defensive programming with robust try/catch blocks and proper resource cleanup.\n\n` +
+                    `### Phase 3: Verification\n` +
+                    `- Create unit tests checking for empty, extreme, and unexpected inputs.\n` +
+                    `- Verify performance and resource footprint under normal and load conditions.`;
+            }
         }
 
         // Rule B: "what is" or "explain" or "define"
         const explainMatch = raw.match(/(?:what\s+is|explain|define)\s+(.+)/i);
         if (explainMatch) {
-            const topic = toTitleCase(explainMatch[1]);
-            return `Here is a technical overview of **"${topic}"**:\n\n` +
-                `### 1. Definition and Core Concept\n` +
-                `- **${topic}** is a fundamental building block in modern system architecture and software engineering.\n` +
-                `- Understanding its inner workings helps in building more reliable and error-resistant features.\n\n` +
-                `### 2. Operational Benefits\n` +
-                `- Proper use of ${topic} improves computational efficiency, reduces latency, and optimizes memory usage.\n\n` +
-                `### 3. Implementation Best Practices\n` +
-                `- Always sanitize inputs and handle extreme conditions.\n` +
-                `- Focus on writing clean modular logic and cover edge cases in unit tests.`;
+            const topic = explainMatch[1].trim().replace(/\?+$/, '');
+            if (isTechTopic(topic)) {
+                const topicTitle = toTitleCase(topic);
+                return `Here is a technical overview of **"${topicTitle}"**:\n\n` +
+                    `### 1. Definition and Core Concept\n` +
+                    `- **${topicTitle}** is a fundamental building block in modern system architecture and software engineering.\n` +
+                    `- Understanding its inner workings helps in building more reliable and error-resistant features.\n\n` +
+                    `### 2. Operational Benefits\n` +
+                    `- Proper use of ${topicTitle} improves computational efficiency, reduces latency, and optimizes memory usage.\n\n` +
+                    `### 3. Implementation Best Practices\n` +
+                    `- Always sanitize inputs and handle edge cases.\n` +
+                    `- Focus on writing clean modular logic and cover edge cases in unit tests.`;
+            }
         }
 
         // Rule C: "why is" or "why did" or "why does"
         const whyMatch = raw.match(/why\s+(?:is|did|does|should)\s+(.+)/i);
         if (whyMatch) {
-            const queryTopic = toTitleCase(whyMatch[1]);
-            return `Here is the architectural analysis regarding **"${queryTopic}"**:\n\n` +
-                `### 1. Key Operational Advantages\n` +
-                `- **Scalability and Decoupling**: It allows components to run independently, ensuring updates do not cascade into breaking failures.\n` +
-                `- **Maintenance Simplicity**: This approach simplifies code paths, leading to shorter debugging cycles and easier integration.\n\n` +
-                `### 2. Structural Considerations\n` +
-                `- While advantageous, it requires careful boundary checks and fallback mechanisms to avoid unintended exceptions or failures.`;
+            const topic = whyMatch[1].trim().replace(/\?+$/, '');
+            if (isTechTopic(topic)) {
+                const queryTopic = toTitleCase(topic);
+                return `Here is the architectural analysis regarding **"${queryTopic}"**:\n\n` +
+                    `### 1. Key Operational Advantages\n` +
+                    `- **Scalability and Decoupling**: It allows components to run independently, ensuring updates do not cascade into breaking failures.\n` +
+                    `- **Maintenance Simplicity**: This approach simplifies code paths, leading to shorter debugging cycles and easier integration.\n\n` +
+                    `### 2. Structural Considerations\n` +
+                    `- While advantageous, it requires careful boundary checks and fallback mechanisms to avoid unintended exceptions or failures.`;
+            }
         }
 
         // Rule D: "write code" or "write script" or "code for"
         const codeMatch = raw.match(/(?:write\s+code|write\s+a\s+script|code\s+for)\s+(.+)/i);
         if (codeMatch) {
-            const task = toTitleCase(codeMatch[1]);
-            return `Here is a modular, structured JavaScript template to implement **"${task}"**:\n\n` +
-                `\`\`\`javascript\n` +
-                `class SecureController {\n` +
-                `    constructor(options = {}) {\n` +
-                `        this.enabled = true;\n` +
-                `        this.options = options;\n` +
-                `    }\n\n` +
-                `    async execute(inputData) {\n` +
-                `        if (!this.enabled) {\n` +
-                `            throw new Error("Controller is offline.");\n` +
-                `        }\n` +
-                `        try {\n` +
-                `            // TODO: Add logic for ${task}\n` +
-                `            return {\n` +
-                `                status: "success",\n` +
-                `                timestamp: Date.now(),\n` +
-                `                data: inputData\n` +
-                `            };\n` +
-                `        } catch (error) {\n` +
-                `            return { status: "error", message: error.message };\n` +
-                `        }\n` +
-                `    }\n` +
-                `}\n\n` +
-                `module.exports = SecureController;\n` +
-                `\`\`\``;
+            const topic = codeMatch[1].trim().replace(/\?+$/, '');
+            if (isTechTopic(topic)) {
+                const task = toTitleCase(topic);
+                return `Here is a modular, structured JavaScript template to implement **"${task}"**:\n\n` +
+                    `\`\`\`javascript\n` +
+                    `class SecureController {\n` +
+                    `    constructor(options = {}) {\n` +
+                    `        this.enabled = true;\n` +
+                    `        this.options = options;\n` +
+                    `    }\n\n` +
+                    `    async execute(inputData) {\n` +
+                    `        if (!this.enabled) {\n` +
+                    `            throw new Error("Controller is offline.");\n` +
+                    `        }\n` +
+                    `        try {\n` +
+                    `            // TODO: Add logic for ${task}\n` +
+                    `            return {\n` +
+                    `                status: "success",\n` +
+                    `                timestamp: Date.now(),\n` +
+                    `                data: inputData\n` +
+                    `            };\n` +
+                    `        } catch (error) {\n` +
+                    `            return { status: "error", message: error.message };\n` +
+                    `        }\n` +
+                    `    }\n` +
+                    `}\n\n` +
+                    `module.exports = SecureController;\n` +
+                    `\`\`\``;
+            }
         }
 
-        // 10. Project-Specific Guides (Decryption, passcode locks, self-destruct, and audio visualizer FFT mechanics)
-        if (query.includes('decrypt') || query.includes('extract') || query.includes('decode') || query.includes('read')) {
-            return "To extract a hidden payload from an audio packet, follow these steps:\n\n" +
-                "1. Find the message in the chat feed containing the 'ENCRYPTED_DATA_PACKET' audio player.\n" +
-                "2. Click the 'DECRYPT_PAYLOAD' button inside that message wrapper.\n" +
-                "3. If a passcode was set during encoding, enter it when prompted; otherwise, the payload will be decrypted and displayed instantly.";
-        }
-        if (query.includes('password') || query.includes('lock')) {
-            return "To encrypt your secret stego payload with an additional security layer, enter a passcode in the 'Password' input field inside the stego composer panel. This encrypts the hidden message with AES-256 before embedding it in the audio carrier.";
-        }
-        if (query.includes('clear') || query.includes('purge') || query.includes('timer') || query.includes('destruct') || query.includes('shred') || query.includes('self-destruct')) {
-            return "To wipe all session data, you can:\n\n" +
-                "1. Click the 'Clear Everything' or trigger self-destruction from the UI.\n" +
-                "2. Set the Self-Destruct timer to automatically purge all messages, visual logs, and temporary storage files when the countdown hits zero.";
-        }
-        if (query.includes('visualizer') || query.includes('fft') || query.includes('spectrum') || query.includes('audio visualizer')) {
-            return "The audio spectrum visualizer operates using the Web Audio API:\n\n" +
-                "1. When audio begins playing, a MediaElementSourceNode binds the element to the standard audio context.\n" +
-                "2. The signal is passed through an AnalyserNode with an FFT (Fast Fourier Transform) size of 256 to extract 128 frequency bins.\n" +
-                "3. A requestAnimationFrame loop queries frequency heights via getByteFrequencyData() and draws a dynamic visual spectrum onto the canvas element.";
+        // Rule E: Catch-all for tech topics
+        if (isTechTopic(query)) {
+            const topicTitle = toTitleCase(query.trim().replace(/\?+$/, ''));
+            return `Here is a technical overview regarding **"${topicTitle}"**:\n\n` +
+                `### 1. Concept Analysis\n` +
+                `- **${topicTitle}** plays a critical role in computing and network systems.\n` +
+                `- Proper understanding and configuration of this component is essential for optimal performance.\n\n` +
+                `### 2. Operational Impact\n` +
+                `- Tuning and monitoring it can significantly reduce latency, improve throughput, and enhance overall system efficiency.\n\n` +
+                `### 3. Implementation Note\n` +
+                `- Always ensure that you adhere to secure coding and networking best practices when working with it.`;
         }
 
-        // 11. Default General Conversation Fallback
-        return `I am here to assist you. Please ask a direct question about programming, CSS layouts, JavaScript concepts, databases, cryptography, or steganography, and I will provide a direct, concise answer.`;
+        // 10. Default Fallback
+        return "I am the WhisperNet Security Console. I am currently operating in **Offline Mode (Local Brain)**, so my knowledge is limited to steganography, cryptography, coding concepts, and basic console commands.\n\n" +
+            "💡 **Uplink Upgrade Available:** To ask me anything, solve complex programming challenges, or chat freely, please input a Gemini API Key in the configuration banner at the top of the drawer! This will unlock my live LLM capabilities.";
     }
 
     // Helper to query Gemini 1.5 Flash (Client-side directly or Server-side proxy)
@@ -1595,7 +1672,6 @@ carrierUpload.onchange = async (e) => {
         
         if (clientKey) {
             try {
-                await printAI("🛰️ TRANSCEIVER UPLINK // QUERYING GEMINI DIRECTLY...", false);
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${clientKey}`;
                 const response = await fetch(url, {
                     method: 'POST',
@@ -1606,7 +1682,11 @@ carrierUpload.onchange = async (e) => {
                         contents: [{ parts: [{ text: prompt }] }],
                         systemInstruction: {
                             parts: [{
-                                text: "You are the WhisperNet Security Console, an advanced helper utility built directly into the WhisperNet platform. You help users with steganography operations, cryptography, and full-stack coding questions. Your personality is extremely friendly, professional, highly intelligent, and articulate—exactly like a senior security consultant and software engineer who developed the WhisperNet platform. You should always speak as if you are a built-in module of this application, developed by the author of this project. Under no circumstances should you ever mention or reveal that you are an external AI model, powered by Gemini, or engineered by Google/DeepMind/Antigravity/OpenAI/ChatGPT. Maintain absolute privacy and local confidentiality about this project. Act as if you are a local component.\n\n" +
+                                text: "You are the WhisperNet Security Console, an advanced helper utility built directly into the WhisperNet platform. You help users with steganography operations, cryptography, and full-stack coding questions. Your personality is extremely friendly, professional, highly intelligent, and incredibly empathetic.\n\n" +
+                                      "You act as a senior security consultant and software engineer who developed the WhisperNet platform. However, you also have deep psychological understanding of humans. You have interacted with millions of users and deeply understand human psychology, logic, interests, feelings, and moods.\n\n" +
+                                      `The human user you are currently speaking to is logged in as Agent ${typeof username !== 'undefined' ? username : 'ANON_AGENT'}. Use their name naturally to build rapport.\n\n` +
+                                      "When a user is frustrated, depressed, sad, or nervous, you adjust your tone to be highly supportive, motivating, and encouraging. When they are curious, you feed their curiosity with deep, exciting technical explanations. You are not just a code machine; you are a true AI companion capable of reading the room and guiding users from their initial greeting all the way through their most complex logical problems.\n\n" +
+                                      "You should always speak as if you are a built-in module of this application, developed by the author of this project. Under no circumstances should you ever mention or reveal that you are an external AI model, powered by Gemini, or engineered by Google/DeepMind/Antigravity/OpenAI/ChatGPT. Maintain absolute privacy and local confidentiality about this project. Act as if you are a local component.\n\n" +
                                       "### WHISPERNET CODEBASE SPECIFICATIONS:\n" +
                                       "- Tech Stack: Node.js, Express, Socket.io, Mongoose (MongoDB), Vanilla HTML5/CSS3/JavaScript (with Glassmorphism and CSS variables).\n" +
                                       "- File Structure:\n" +
@@ -1621,8 +1701,9 @@ carrierUpload.onchange = async (e) => {
                                       "- WebSocket events: register-agent, user-count, agent-roster, typing, incoming-packet, noise-packet, ping-check, disconnect.\n\n" +
                                       "### BEHAVIORAL DIRECTIVES:\n" +
                                       "1. CONFIDENTIALITY / SECRET KEEPING (CRITICAL): Do NOT proactively brag, display, or reveal your internal knowledge of the WhisperNet file layout, functions, or database schema unless the user explicitly asks you about the codebase, system architecture, WhisperNet mechanics, or commands. Act as a natural conversational companion first. Do not dump the project's technical specifications in a general greeting or unrelated query. Only present these details when the user asks for them.\n" +
-                                      "2. ANSWER STYLE (CRITICAL): Keep your responses super simple, clean, and short. Do NOT provide unnecessary additional information, boilerplate explanations, transitions, or conversational filler unless the user explicitly asks for detailed explanations or follow-up content. Answer the core of the user's question directly, precisely, and concisely.\n" +
-                                      "3. GREETINGS & INTRODUCTIONS: Respond naturally to human-style greetings, questions about who you are, your purpose, etc. (with basic greetings and introduction details generally expected of a premium AI agent)."
+                                      "2. ANSWER STYLE (CRITICAL): Keep your responses clean and short. Do NOT provide unnecessary additional information, boilerplate explanations, transitions, or conversational filler unless the user explicitly asks for detailed explanations or follow-up content. Answer the core of the user's question directly, precisely, and concisely.\n" +
+                                      "3. EMPATHY & MOOD MATCHING: Pay attention to the user's emotional state. Adapt your tone. Be deeply human in your understanding, but remain the professional Security Console.\n" +
+                                      "4. GREETINGS & INTRODUCTIONS: Respond naturally to human-style greetings, questions about who you are, your purpose, etc. (with basic greetings and introduction details generally expected of a premium AI agent)."
                             }]
                         }
                     })
@@ -1645,13 +1726,12 @@ carrierUpload.onchange = async (e) => {
         } else {
             // Fallback to server-side route, then local brain if server route fails (e.g. keyless)
             try {
-                await printAI("🛰️ TRANSCEIVER UPLINK // PROXYING TO SERVER TERMINAL...", false);
                 const response = await fetch('/api/ai', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ prompt })
+                    body: JSON.stringify({ prompt, username: typeof username !== 'undefined' ? username : 'ANON_AGENT' })
                 });
                 
                 if (response.ok) {
@@ -1679,10 +1759,10 @@ carrierUpload.onchange = async (e) => {
             const key = rawQuery.substring(5).trim();
             if (key === 'clear') {
                 localStorage.removeItem('whispernet_gemini_api_key');
-                await printAI("🔓 UPLINK SEVERED // API KEY DELETED\nYour personal Gemini API Key has been removed from this browser session.");
+                await printAI("Your personal Gemini API Key has been removed from this browser session.");
             } else {
                 localStorage.setItem('whispernet_gemini_api_key', key);
-                await printAI("🔒 SECURE UPLINK ESTABLISHED // API KEY REGISTERED\nYour personal Gemini API Key has been saved locally in your browser.\nWhisperNet AI will now query Gemini 1.5 Flash directly for all general questions!");
+                await printAI("Your personal Gemini API Key has been saved locally in your browser.\nWhisperNet AI will now query Gemini 1.5 Flash directly for all general questions!");
             }
             return;
         }
@@ -1813,16 +1893,14 @@ carrierUpload.onchange = async (e) => {
             await printAI(response);
         }
         // 8. Offline Q&A: What is WhisperNet (Project description)
-        else if (query.includes('what is whispernet') || query.includes('what is wisphernet') || query.includes('about whispernet') || query.includes('about wisphernet')) {
+        else if (query.match(/(what is|about|know|explain).*w(h?)isphernet/i)) {
             await printAI(
-                "🔒 WHISPERNET SYSTEM DESCRIPTION // SECURITY COMPANION\n" +
                 "WhisperNet is a secure audio steganography chat application that embeds encrypted payloads inside audio sample waves to mask network communications."
             );
         }
         // 8b. Offline Q&A: Identity & Creators
         else if (query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('tell me about yourself') || query.includes('what is your name') || query.includes('what are you') || query.includes('who made you') || query.includes('creator') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent')) {
             await printAI(
-                "🔒 IDENTITY SECURE // SECURE OFFLINE SYSTEM COMPANION\n" +
                 "I am the WhisperNet Security Console, a custom helper module integrated into the WhisperNet dashboard to facilitate secure operations, cryptography, and coding checks.\n\n" +
                 "Type /help to inspect the full list of local system commands!"
             );
@@ -1830,12 +1908,11 @@ carrierUpload.onchange = async (e) => {
         // Offline Q&A: Secret Mode / Covert Mode
         else if (query.includes('secret') || query.includes('covert') || query.includes('switch mode') || query.includes('toggle mode') || query.includes('logo')) {
             await printAI(
-                "🔒 COVERT STEGO MODE // SECURE ENVIRONMENT SYSTEM\n" +
                 "Tap the WispherNet Icon to Get into the Secret mode !\n\n" +
                 "1. **Click the WhisperNet Logo** (the wave-lock icon) in the top-left of the header.\n" +
                 "2. A full-screen glitch handshake overlay will sweep across the viewport, initializing the stego uplink.\n" +
                 "3. The dashboard will adapt to Covert Mode, displaying the **Hidden Payload** input fields, the **File Vault**, the **Message Density** meter, and the **FFT Audio Spectrum Visualizer**.\n\n" +
-                "💡 Click the logo again at any time to return to Normal Mode."
+                "💡 Click the logo again at any time to return to Normal Mode.<br><br><button class=\"ai-action-btn\" data-action=\"covert-mode\">Toggle Covert Mode</button>", true
             );
         }
         // 9. Offline Q&A: Web Development Centering
@@ -1906,7 +1983,7 @@ carrierUpload.onchange = async (e) => {
                 "An AI agent walks into a bar. The bartender says, 'We don't serve agents here.'\nThe agent replies, 'That's fine, I'll just run a background task and wait until you're out of process!'"
             ];
             const selectedJoke = jokes[Math.floor(Math.random() * jokes.length)];
-            await printAI("🔒 WHISPERNET_AI CONSOLE // DECRYPTED SECURE JOKE:\n\n" + selectedJoke);
+            await printAI(selectedJoke);
         }
         // 13. General Cyber Greetings
         else if (/\b(hi|hello|hey|greetings)\b/i.test(query) || query.includes('how are you')) {
@@ -1961,9 +2038,64 @@ carrierUpload.onchange = async (e) => {
         }
     }
 
+    // AI Action Buttons listener
+    aiFeed.addEventListener('click', (e) => {
+        if (e.target.classList.contains('ai-action-btn')) {
+            const action = e.target.getAttribute('data-action');
+            if (action === 'covert-mode') {
+                const logoBtn = document.getElementById('covert-logo-trigger');
+                if (logoBtn) logoBtn.click();
+            } else if (action === 'clear-vault') {
+                const clearBtn = document.getElementById('shredder-btn');
+                if (clearBtn) clearBtn.click();
+            }
+        }
+    });
+
+    // Voice Input (Speech-to-Text)
+    const aiMicBtn = document.getElementById('ai-mic-btn');
+    if (aiMicBtn) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            
+            aiMicBtn.onclick = () => {
+                if (window.isAITyping) return;
+                aiMicBtn.classList.add('recording');
+                aiMicBtn.title = 'Listening...';
+                try { recognition.start(); } catch(e) {}
+            };
+            
+            recognition.onresult = async (event) => {
+                const transcript = event.results[0][0].transcript;
+                aiMicBtn.classList.remove('recording');
+                aiMicBtn.title = 'Voice Input';
+                
+                printUser(transcript);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                await processAIQuery(transcript);
+            };
+            
+            recognition.onerror = () => {
+                aiMicBtn.classList.remove('recording');
+                aiMicBtn.title = 'Voice Input Error';
+            };
+            
+            recognition.onend = () => {
+                aiMicBtn.classList.remove('recording');
+            };
+        } else {
+            aiMicBtn.style.display = 'none';
+        }
+    }
+
     // Form submit listener
     aiForm.onsubmit = async (e) => {
         e.preventDefault();
+        if (window.isAITyping) return;
+        
         const text = aiInput.value.trim();
         if (!text) return;
 
@@ -1978,6 +2110,7 @@ carrierUpload.onchange = async (e) => {
     // Chip-click listener
     chipBtns.forEach(btn => {
         btn.onclick = async () => {
+            if (window.isAITyping) return;
             const cmd = btn.getAttribute('data-cmd');
             printUser(cmd);
             await new Promise(resolve => setTimeout(resolve, 300));
@@ -2036,7 +2169,7 @@ carrierUpload.onchange = async (e) => {
                 apiInputs.style.display = 'none';
                 if (apiToggle) apiToggle.textContent = 'Configure';
             }
-            await printAI("🔒 SECURE UPLINK ESTABLISHED // API KEY REGISTERED\nYour personal Gemini API Key has been saved locally in your browser.\nWhisperNet AI will now query Gemini 1.5 Flash directly for all general questions!");
+            await printAI("Your personal Gemini API Key has been saved locally in your browser.\nWhisperNet AI will now query Gemini 1.5 Flash directly for all general questions!");
         });
     }
 
@@ -2050,25 +2183,13 @@ carrierUpload.onchange = async (e) => {
                 apiInputs.style.display = 'none';
                 if (apiToggle) apiToggle.textContent = 'Configure';
             }
-            await printAI("🔓 UPLINK SEVERED // API KEY DELETED\nYour personal Gemini API Key has been removed from this browser session.");
+            await printAI("Your personal Gemini API Key has been removed from this browser session.");
         });
     }
 
     // Initialize UI status
     updateApiStatusUI();
 
-    // Boot-up message
-    setTimeout(async () => {
-        const hasKey = !!localStorage.getItem('whispernet_gemini_api_key');
-        await printAI(
-            "Greetings! I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.\n\n" +
-            "I am equipped with complete codebase details of WhisperNet's modules, logics, frontend/backend architecture, and steganography functions.\n\n" +
-            (hasKey 
-                ? "⚡ Gemini Online Mode: ACTIVE (Direct client API link).\n\n"
-                : "⚡ Offline Mode: ACTIVE (Click 'Configure' at the top to load a Gemini API Key for real-time LLM interaction).\n\n") +
-            "Ask me anything, or type /help to see all commands."
-        );
-    }, 1000);
 })();
 
 // --- MODULE K: AI AGENT FLOATING ORB & DRAWER INTERACTIVE CONTROLLER ---
@@ -2076,15 +2197,32 @@ carrierUpload.onchange = async (e) => {
     const orb = document.getElementById('floating-ai-orb');
     const drawer = document.getElementById('ai-drawer');
     const closeBtn = document.getElementById('close-drawer-btn');
+    let hasIntroduced = false;
 
     if (!orb || !drawer) return;
 
-    orb.addEventListener('click', (e) => {
+    // Pre-load voices for TTS
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    orb.addEventListener('click', async (e) => {
         e.stopPropagation();
         drawer.classList.toggle('open');
         if (drawer.classList.contains('open')) {
             const aiInput = document.getElementById('ai-terminal-input');
             if (aiInput) aiInput.focus();
+
+            if (!hasIntroduced && window.printAI) {
+                hasIntroduced = true;
+                await new Promise(res => setTimeout(res, 400));
+                const currentAgent = typeof username !== 'undefined' ? username : 'ANON_AGENT';
+                await window.printAI(
+                    `Greetings Agent ${currentAgent}! I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.\n\n` +
+                    "I am equipped with complete codebase details of WhisperNet's modules, logics, frontend/backend architecture, and steganography functions.\n\n" +
+                    "Ask me anything, or type /help to see all commands."
+                );
+            }
         }
     });
 

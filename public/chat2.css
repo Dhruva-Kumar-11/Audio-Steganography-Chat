@@ -1060,6 +1060,13 @@ body.covert-active .bottom-row {
     box-shadow: 0 0 8px rgba(0, 200, 255, 0.3) !important;
 }
 
+.terminal-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
 .btn-terminal-submit {
     background: linear-gradient(135deg, var(--blue), var(--purple));
     border: none;
@@ -1501,6 +1508,77 @@ body.covert-active .api-key-status-dot.online {
 .btn-api-clear:hover {
     background: rgba(239, 68, 68, 0.2);
     border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* --- AI UX UPGRADES: Mic Button, Interactive Actions, Markdown --- */
+.btn-ai-mic {
+    background: rgba(0, 200, 255, 0.05);
+    border: 1px solid rgba(0, 200, 255, 0.2);
+    border-radius: 8px !important;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 10px;
+    transition: all 0.2s;
+    outline: none;
+}
+.btn-ai-mic:hover {
+    background: rgba(0, 200, 255, 0.2);
+}
+.btn-ai-mic.recording {
+    background: rgba(255, 0, 127, 0.2);
+    border-color: #ff007f;
+    animation: pulse-mic 1s infinite alternate;
+}
+@keyframes pulse-mic {
+    from { box-shadow: 0 0 5px rgba(255, 0, 127, 0.2); }
+    to { box-shadow: 0 0 15px rgba(255, 0, 127, 0.6); }
+}
+
+.ai-action-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(0,200,255,0.1), rgba(168,85,247,0.1));
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    border-radius: 6px;
+    color: #00f2ff;
+    font-size: 11px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.ai-action-btn:hover {
+    background: linear-gradient(135deg, rgba(0,200,255,0.2), rgba(168,85,247,0.2));
+    border-color: #00f2ff;
+    box-shadow: 0 0 10px rgba(0, 200, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.terminal-msg.ai p {
+    margin-bottom: 8px;
+}
+.terminal-msg.ai table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 11px;
+}
+.terminal-msg.ai th, .terminal-msg.ai td {
+    border: 1px solid rgba(0, 200, 255, 0.2);
+    padding: 4px 8px;
+}
+.terminal-msg.ai th {
+    background: rgba(0, 200, 255, 0.1);
+    color: var(--blue);
+}
+.terminal-msg.ai blockquote {
+    border-left: 2px solid var(--purple);
+    padding-left: 8px;
+    color: #a78bfa;
+    margin: 8px 0;
+    font-style: italic;
 }
 
 
