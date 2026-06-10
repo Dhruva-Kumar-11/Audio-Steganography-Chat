@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: audio-steganography-chat
+    name: WispherNet-chat
     env: node
     plan: free
     buildCommand: npm install
