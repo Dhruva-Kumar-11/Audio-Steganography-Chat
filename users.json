@@ -11,7 +11,6 @@
     "username": "Darshan",
     "password": "$2b$10$55VoUSkwCAGiSxTa.138..A6UFjsvmm.Nl7E/se.JRGAXX/R6G7ey"
   },
-  {},
   {
     "username": "testuser",
     "password": "$2b$10$oHKWbLJwEc46yB2kHRGh1eMHVzioqhr2Zr/gc23IujYvIwnBUh4li"
@@ -27,5 +26,9 @@
   {
     "username": "Akshith",
     "password": "$2b$10$1X7NWgIjhIerDdpV0B4VHeqKJqRJHp6Lx/XcE7RJjWJZYtzhVitda"
+  },
+  {
+    "username": "test",
+    "password": "$2b$10$AzkfZWk0qRz16.LnTYecnOHpYzF1zp.kdvhWAq5ASK72f7pbxUAQu"
   }
 ]

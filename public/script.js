@@ -125,6 +125,16 @@ socket.on('incoming-packet', (packet) => {
     receive(packet);
 });
 
+socket.on('payload-decrypted', (data) => {
+    if (data.messageId) {
+        const receipt = document.getElementById(`receipt-${data.messageId}`);
+        if (receipt) {
+            receipt.textContent = '✓✓';
+            receipt.classList.add('read');
+        }
+    }
+});
+
 // Typing Indicator Handlers
 let typingTimeout = null;
 textInput.addEventListener('input', () => {
@@ -261,6 +271,11 @@ window.addEventListener("click", async (e) => {
         }
 
         addToAuditLog("STEGO_PAYLOAD_DECRYPTED");
+        const msgId = card.id ? card.id.replace('msg-', '') : null;
+        if (msgId) {
+            socket.emit('payload-decrypted', { messageId: msgId });
+        }
+        
         const reveal = document.createElement('div');
         reveal.style.color = 'var(--electric-cyan)';
         reveal.style.marginTop = '15px';
@@ -652,7 +667,9 @@ async function transmit(message, audioBlob) {
     }
 
     const sendPacket = (base64, mimeType) => {
+        const msgId = Date.now().toString() + Math.floor(Math.random()*1000);
         const packet = {
+            messageId: msgId,
             sender: username,
             text: message,
             audioData: base64,
@@ -665,6 +682,7 @@ async function transmit(message, audioBlob) {
         
         // Local Display
         renderMessage({
+            messageId: packet.messageId,
             text: packet.text,
             audio: packet.audioData,
             audioMime: packet.audioMime,
@@ -709,6 +727,16 @@ async function transmit(message, audioBlob) {
 function receive(packet) {
     if (packet.sender === username) return;  // Skip own messages echoed back by server
 
+    if (window.showChatNotification) window.showChatNotification('Message Received', 'received');
+
+    // Cinematic: Glitch and Beep
+    if (window.playCyberBeep) window.playCyberBeep();
+    const chatFeed = document.getElementById('chat-feed');
+    if (chatFeed) {
+        chatFeed.classList.add('glitch-effect');
+        setTimeout(() => chatFeed.classList.remove('glitch-effect'), 400);
+    }
+
     let audioUrl = null;
     if (packet.audioData) {
         try {
@@ -729,6 +757,7 @@ function receive(packet) {
     }
 
     renderMessage({
+        messageId: packet.messageId,
         text: packet.text,
         audio: audioUrl,
         audioMime: packet.audioMime,
@@ -750,10 +779,19 @@ function renderMessage(payload, isMe) {
     senderLabel.className = 'sender-tag';
     senderLabel.style.color = isMe ? 'var(--vivid-magenta)' : 'var(--electric-cyan)';
     senderLabel.textContent = isMe ? 'LOCAL_AGENT' : (payload.sender || 'REMOTE_AGENT');
+    
+    if (isMe && payload.messageId) {
+        const receipt = document.createElement('span');
+        receipt.className = 'read-receipt';
+        receipt.id = `receipt-${payload.messageId}`;
+        receipt.textContent = '✓';
+        senderLabel.appendChild(receipt);
+    }
     wrapper.appendChild(senderLabel);
 
     const card = document.createElement('div');
     card.className = 'message';
+    if (payload.messageId) card.id = `msg-${payload.messageId}`;
     card.style.background = 'rgba(255, 255, 255, 0.03)';
     card.style.borderLeft = isMe ? '3px solid var(--vivid-magenta)' : '3px solid var(--electric-cyan)';
 
@@ -812,6 +850,9 @@ function renderMessage(payload, isMe) {
         if (payload.hidden_payload) {
             addToVault(payload.audio, `${isMe ? 'LOCAL' : 'INCOMING'}_CARRIER_${Date.now()}.wav`);
         }
+    } else if (!isMe && payload.messageId) {
+        // Emit instantly for normal plaintext messages
+        socket.emit('payload-decrypted', { messageId: payload.messageId });
     }
 
     // Capture scroll state before appending
@@ -896,6 +937,8 @@ carrierUpload.onchange = async (e) => {
         socket.emit('register-agent', { username });
     }
 
+    let previousRoster = [];
+
     socket.on('agent-roster', (roster) => {
         const list = document.getElementById('agent-roster-list');
         if (!list) return;
@@ -908,7 +951,23 @@ carrierUpload.onchange = async (e) => {
             badge.innerHTML = `<span style="width:6px;height:6px;border-radius:50%!important;background:${dot};flex-shrink:0;"></span><span style="color:${dot};font-size:10px;text-transform:uppercase;">${escapedName}${name === username ? ' [YOU]' : ''}</span>`;
             list.appendChild(badge);
         });
+
+        // Track joins and leaves
+        if (previousRoster.length > 0) {
+            const joined = roster.filter(u => !previousRoster.includes(u) && u !== username);
+            const left = previousRoster.filter(u => !roster.includes(u) && u !== username);
+            
+            joined.forEach(u => appendSysAlert(`[SYS_ALERT] AGENT ${u} HAS INITIATED UPLINK`, 'green'));
+            left.forEach(u => appendSysAlert(`[SYS_ALERT] AGENT ${u} CONNECTION SEVERED`, 'red'));
+        }
+        previousRoster = [...roster];
     });
+
+    function appendSysAlert(text, color) {
+        if (window.showChatNotification) {
+            window.showChatNotification(text, color);
+        }
+    }
 })();
 
 // --- MODULE C: PAYLOAD ANALYZER ---
@@ -1162,21 +1221,87 @@ carrierUpload.onchange = async (e) => {
     if (!covertTrigger) return;
     
     covertTrigger.addEventListener('click', () => {
-        const isActive = document.body.classList.toggle('covert-active');
-        const overlay = document.getElementById('covert-handshake-overlay');
-        const payloadSec = document.querySelector('.payload-section');
-        const densityCard = document.getElementById('density-card');
+        const isVercel = document.body.classList.contains('theme-vercel-dark');
+        const isCurrentlyCovert = document.body.classList.contains('covert-active');
 
-        if (overlay) {
-            overlay.classList.add('sweep');
+        if (isVercel && !isCurrentlyCovert) {
+            let overlay = document.getElementById('vercel-deployment-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'vercel-deployment-overlay';
+                overlay.className = 'vercel-deployment-overlay';
+                overlay.innerHTML = `
+                    <div class="vercel-spinner"></div>
+                    <div class="vercel-terminal-logs" id="vercel-term-logs"></div>
+                `;
+                document.body.appendChild(overlay);
+            }
+
+            void overlay.offsetWidth;
+            overlay.classList.add('active');
+
+            const termLogs = document.getElementById('vercel-term-logs');
+            termLogs.innerHTML = '';
+
+            // Synthesize subtle keyboard typing clicks
+            const playTypeSound = () => {
+                try {
+                    const audioCtx = getAudioContext();
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(800 + Math.random() * 400, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.05);
+                } catch(e) {}
+            };
+
+            const addLog = (timeStr, msg, isSuccess=false) => {
+                const line = document.createElement('div');
+                line.className = 'vercel-log-line' + (isSuccess ? ' success' : '');
+                line.innerHTML = `<span class="time">[${timeStr}s]</span> ${msg}`;
+                termLogs.appendChild(line);
+                playTypeSound();
+            };
+
+            addLog('0.0', 'Running build in Secret Mode Environment');
+
+            setTimeout(() => addLog('1.2', 'Cloning deployment credentials...'), 1200);
+            setTimeout(() => addLog('2.5', 'Installing steganography dependencies...'), 2500);
+            setTimeout(() => addLog('3.8', 'Verifying E2E encryption tunnel...'), 3800);
+            setTimeout(() => addLog('4.6', 'Build Completed. Ready.', true), 4600);
+
             setTimeout(() => {
-                overlay.classList.remove('sweep');
-            }, 1800);
+                executeToggle();
+                overlay.classList.remove('active');
+            }, 5000);
+        } else {
+            executeToggle();
         }
 
-        const emptyIcon = document.getElementById('chat-empty-icon');
-        const emptyText = document.getElementById('chat-empty-text');
-        const emptySub = document.getElementById('chat-empty-sub');
+        function executeToggle() {
+            const isActive = document.body.classList.toggle('covert-active');
+            socket.emit('covert-mode-toggle', { username, isActive });
+
+            const overlay = document.getElementById('covert-handshake-overlay');
+            const payloadSec = document.querySelector('.payload-section');
+            const densityCard = document.getElementById('density-card');
+
+            if (overlay) {
+                overlay.classList.add('sweep');
+                setTimeout(() => {
+                    overlay.classList.remove('sweep');
+                }, 1800);
+            }
+
+            const emptyIcon = document.getElementById('chat-empty-icon');
+            const emptyText = document.getElementById('chat-empty-text');
+            const emptySub = document.getElementById('chat-empty-sub');
         const brandSub = document.getElementById('brand-sub-text');
 
         if (isActive) {
@@ -1205,6 +1330,7 @@ carrierUpload.onchange = async (e) => {
             addToAuditLog('STEGO_PROTOCOL_DISARMED');
             updateAuditLogs();
             if (window.showToast) window.showToast('📶 SECURE UPLINK TERMINATED: COVERT PROTOCOL DEACTIVATED');
+        }
         }
     });
 })();
@@ -2219,7 +2345,6 @@ carrierUpload.onchange = async (e) => {
                 const currentAgent = typeof username !== 'undefined' ? username : 'ANON_AGENT';
                 await window.printAI(
                     `Greetings Agent ${currentAgent}! I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.\n\n` +
-                    "I am equipped with complete codebase details of WhisperNet's modules, logics, frontend/backend architecture, and steganography functions.\n\n" +
                     "Ask me anything, or type /help to see all commands."
                 );
             }
@@ -2239,5 +2364,101 @@ carrierUpload.onchange = async (e) => {
             drawer.classList.remove('open');
         }
     });
+
+    // --- UX UPGRADE: Custom Themes ---
+    const themeButtons = document.querySelectorAll('.btn-theme');
+    const savedTheme = localStorage.getItem('whispernet-theme') || 'neon-cyan';
+    
+    const applyTheme = (themeName) => {
+        document.body.className = document.body.className.replace(/\btheme-\S+/g, '');
+        if (themeName !== 'neon-cyan') {
+            document.body.classList.add(`theme-${themeName}`);
+        }
+        
+        const revertBtn = document.getElementById('btn-revert-theme');
+        if (revertBtn) {
+            revertBtn.style.display = themeName === 'neon-cyan' ? 'none' : 'inline-block';
+        }
+
+        themeButtons.forEach(b => {
+            if (b.dataset.theme === themeName) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        localStorage.setItem('whispernet-theme', themeName);
+    };
+
+    applyTheme(savedTheme);
+
+    themeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyTheme(btn.dataset.theme);
+        });
+    });
+
+    // --- Cinematic UX: Cyber Beep ---
+    window.playCyberBeep = () => {
+        try {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        } catch(e) {}
+    };
+
+    window.showChatNotification = (message, type) => {
+        let container = document.getElementById('tr-notifications');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'tr-notifications';
+            container.className = 'tr-notifications';
+            document.body.appendChild(container);
+        }
+        
+        const bubble = document.createElement('div');
+        bubble.className = `chat-notify-bubble ${type}`;
+        
+        let icon = '';
+        if (type === 'sent') icon = '↑';
+        else if (type === 'received') icon = '↓';
+        else if (type === 'green') icon = '✓';
+        else if (type === 'red') icon = '⚠';
+        
+        bubble.innerHTML = `${icon} ${message}`;
+        container.appendChild(bubble);
+        
+        // Force reflow
+        void bubble.offsetWidth;
+        bubble.classList.add('show');
+        
+        setTimeout(() => {
+            bubble.classList.remove('show');
+            setTimeout(() => {
+                if (bubble.parentElement) bubble.remove();
+            }, 300);
+        }, 5000);
+    };
+
+    // --- Cinematic UX: Suspenseful Secret Mode Notification ---
+    socket.on('covert-mode-toggle', (data) => {
+        // If someone else toggled it, and we are NOT in covert mode, show the suspense effect
+        const isCurrentlyCovert = document.body.classList.contains('covert-active');
+        
+        if (data.isActive && !isCurrentlyCovert) {
+            document.body.classList.add('stealth-detected');
+            appendSysAlert(`[WARNING] STEALTH PROTOCOLS DETECTED. AGENT ${data.username} HAS GONE DARK.`, 'red');
+            if (window.playCyberBeep) window.playCyberBeep();
+        } else if (!data.isActive) {
+            document.body.classList.remove('stealth-detected');
+        }
+    });
+
 })();
 

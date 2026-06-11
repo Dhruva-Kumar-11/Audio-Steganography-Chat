@@ -586,6 +586,14 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('typing', { username: data.username, isTyping: data.isTyping });
     });
 
+    socket.on('payload-decrypted', (data) => {
+        socket.broadcast.emit('payload-decrypted', data);
+    });
+
+    socket.on('covert-mode-toggle', (data) => {
+        socket.broadcast.emit('covert-mode-toggle', data);
+    });
+
     socket.on('disconnect', () => {
         // MODULE_B: Remove from roster on disconnect
         agentRoster.delete(socket.id);
