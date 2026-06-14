@@ -2,49 +2,27 @@
 
 /* ── VARIABLES ─────────────────────────────── */
 :root {
-    /* ORIGINAL THEME (Default) */
-    --bg: #030508;
-    --surface: rgba(6, 14, 24, 0.92);
-    --surface2: rgba(10, 20, 35, 0.85);
-    --blue: #00f5ff;
-    --purple: #ff00e5;
-    --green: #00ff88;
-    --amber: #ffb800;
-    --red: #ff3355;
-    --border: rgba(0, 245, 255, 0.13);
-    --border-hover: rgba(0, 245, 255, 0.35);
-    --text: #9ab8c4;
-    --bright: #ddeeff;
-    --dim: #3a5060;
-    --glow-blue: rgba(0, 245, 255, 0.25);
-    --glow-purple: rgba(255, 0, 229, 0.25);
-    --font-base: 'Share Tech Mono', monospace;
-}
-
-body.covert-active {
-    /* VERCEL THEME (Secret Mode) */
-    --bg: #000000;
-    --surface: rgba(10, 10, 10, 0.6);
-    --surface2: rgba(20, 20, 20, 0.8);
-    --blue: #0070f3;
-    --purple: #7928ca;
-    --green: #50e3c2;
-    --amber: #f5a623;
-    --red: #e00;
-    --border: rgba(255, 255, 255, 0.1);
-    --border-hover: rgba(255, 255, 255, 0.2);
-    --text: #888888;
-    --bright: #ffffff;
-    --dim: #333333;
-    --glow-blue: rgba(0, 112, 243, 0.15);
-    --glow-purple: rgba(121, 40, 202, 0.15);
-    --font-base: 'Inter', sans-serif;
+    --bg: #04080f;
+    --surface: rgba(8,18,36,0.85);
+    --surface2: rgba(14,28,55,0.7);
+    --blue: #00c8ff;
+    --purple: #a855f7;
+    --green: #10f5a0;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --border: rgba(0,200,255,0.12);
+    --border-hover: rgba(0,200,255,0.35);
+    --text: #94a3b8;
+    --bright: #e2e8f0;
+    --dim: #334155;
+    --glow-blue: rgba(0,200,255,0.25);
+    --glow-purple: rgba(168,85,247,0.25);
 }
 
 /* ── RESET & BASE ──────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-    font-family: var(--font-base);
+    font-family: 'Inter', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
