@@ -2,6 +2,15 @@
   <img src="https://raw.githubusercontent.com/Dhruva-Kumar-11/Audio-Steganography-Chat/main/public/whispernet_logo_wave_lock_1778614213458.png" alt="WhisperNet Logo" width="200"/>
   <h1>WhisperNet</h1>
   <p><strong>Military-Grade Audio Steganography & Secure Chat Platform</strong></p>
+  
+  <p>
+    <a href="https://audio-steganography-chat.vercel.app" target="_blank">
+      <img src="https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel" alt="Live Demo on Vercel">
+    </a>
+    <a href="https://wisphernet-chat.onrender.com" target="_blank">
+      <img src="https://img.shields.io/badge/Live_Demo-Render-46E3B7?style=for-the-badge&logo=render" alt="Live Demo on Render">
+    </a>
+  </p>
 </div>
 
 ---
