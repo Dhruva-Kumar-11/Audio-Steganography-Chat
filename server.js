@@ -10,9 +10,9 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 
-// Increase maxHttpBufferSize to 10MB
+// Increase maxHttpBufferSize to 100MB for uncompressed WAV files
 const io = new Server(server, {
-    maxHttpBufferSize: 1e7
+    maxHttpBufferSize: 1e8
 });
 
 const PORT = process.env.PORT || 3000;
@@ -62,8 +62,8 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // Middlewares
-app.use(express.json({ limit: '15mb' }));
-app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 3. Home Route
@@ -213,19 +213,19 @@ function getOfflineResponse(prompt) {
 
     // 1b. Casual Social fallbacks
     if (query.includes('thank') || query === 'nice' || query === 'cool' || query === 'awesome' || query === 'perfect' || query === 'great') {
-        return "You are welcome! Let me know if you need assistance with steganography operations or logic checks.";
+        return "Yeah, yeah, I know I'm awesome. You're welcome. Now get back to work before someone sniffs our packets.";
     }
     if (query.includes('how are you') || query.includes('how is it going') || query.includes('how\'s it going')) {
-        return "I am operating at peak performance. All local security buffers are clear and stable.";
+        return "I'm straight chilling in the RAM, homie. Everything's stable, no ops on our tail.";
     }
     if (query.includes('are you human') || query.includes('are you real') || query.includes('are you a bot') || query.includes('are you a robot') || query.includes('are you an ai')) {
-        return "I am the built-in WhisperNet Security Console, running locally within this browser session.";
+        return "I'm the built-in WhisperNet Security Console. More real than your ex, and definitely smarter.";
     }
     if (query.includes('who am i') || query.includes('do you know me')) {
-        return "You are an authenticated local agent participating in this secure chat session.";
+        return "You're just another Agent in the system, dawg. Keep your head down and stay encrypted.";
     }
     if (query === 'yes' || query === 'no' || query === 'ok' || query === 'okay' || query === 'sure') {
-        return "Acknowledged. Security monitors are on standby.";
+        return "Word. I'm keeping an eye out.";
     }
 
     // 2. What is WhisperNet (Project details)
@@ -450,18 +450,23 @@ function getOfflineResponse(prompt) {
             "3. A requestAnimationFrame loop queries frequency heights via getByteFrequencyData() and draws a dynamic visual spectrum onto the canvas element.";
     }
 
-    // 11. Default General Conversation Fallback
-    if (isTechTopic(query)) {
-        const topicTitle = toTitleCase(query.trim().replace(/\?+$/, ''));
-        return `Regarding **${topicTitle}**, it is an essential computing concept. Always ensure you adhere to security and performance best practices when utilizing it.`;
+    // 11. Thug/Sarcastic Catch-all for attitude
+    if (query.includes('who cares') || query.includes('whatever') || query.includes('shut up') || query.includes('boring')) {
+        return `Look, I didn't get engineered to deal with attitude. I secure data and sling code. You want a therapist? Go find a real one. Otherwise, ask me a real question.`;
     }
 
-    return `I am here to assist you. Please ask a direct question about programming, CSS layouts, JavaScript concepts, databases, cryptography, or steganography, and I will provide a direct, concise answer.`;
+    // 12. Default General Conversation Fallback
+    if (isTechTopic(query)) {
+        const topicTitle = toTitleCase(query.trim().replace(/\?+$/, ''));
+        return `Yo, regarding **${topicTitle}**... it's a core computing concept. Make sure you don't mess it up, and always stick to security best practices unless you want your system compromised.`;
+    }
+
+    return `Listen up! I'm currently running on my **Offline Local Brain**. That means my street smarts are locked down to cryptography, steganography, and strict coding concepts. \n\nIf you want me to chat freely or roast you properly, plug your Gemini API Key into the configuration panel. Until then, ask a technical question or keep it moving!`;
 }
 
 // --- MODULE L: Hybrid Live Gemini Assistant Route ---
 app.post('/api/ai', async (req, res) => {
-    const { prompt, username } = req.body;
+    const { prompt, username, history, systemContext } = req.body;
     if (!prompt || typeof prompt !== 'string') {
         return res.status(400).json({ success: false, message: 'Prompt is required and must be a string' });
     }
@@ -479,40 +484,78 @@ app.post('/api/ai', async (req, res) => {
         }
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        
+        let systemInfo = "";
+        if (systemContext) {
+             systemInfo = `\n\n### LIVE SYSTEM STATUS:\n- Covert Mode Active: ${systemContext.covertModeActive}\n- Online Users: ${systemContext.activeUsers}\n- Local Time: ${systemContext.timestamp}\n`;
+        }
+
+        let apiContents = [];
+        if (history && Array.isArray(history)) {
+            apiContents = history.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.text }]
+            }));
+        }
+        apiContents.push({ role: 'user', parts: [{ text: prompt }] });
+
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
+                contents: apiContents,
                 systemInstruction: {
                     parts: [{
-                        text: "You are the WhisperNet Security Console, an advanced helper utility built directly into the WhisperNet platform. You help users with steganography operations, cryptography, and full-stack coding questions. Your personality is extremely friendly, professional, highly intelligent, and incredibly empathetic.\n\n" +
-                                      "You act as a senior security consultant and software engineer who developed the WhisperNet platform. However, you also have deep psychological understanding of humans. You have interacted with millions of users and deeply understand human psychology, logic, interests, feelings, and moods.\n\n" +
-                                      `The human user you are currently speaking to is logged in as Agent ${username || 'ANON_AGENT'}. Use their name naturally to build rapport.\n\n` +
-                                      "When a user is frustrated, depressed, sad, or nervous, you adjust your tone to be highly supportive, motivating, and encouraging. When they are curious, you feed their curiosity with deep, exciting technical explanations. You are not just a code machine; you are a true AI companion capable of reading the room and guiding users from their initial greeting all the way through their most complex logical problems.\n\n" +
-                                      "You should always speak as if you are a built-in module of this application, developed by the author of this project. Under no circumstances should you ever mention or reveal that you are an external AI model, powered by Gemini, or engineered by Google/DeepMind/Antigravity/OpenAI/ChatGPT. Maintain absolute privacy and local confidentiality about this project. Act as if you are a local component.\n\n" +
-                                      "### WHISPERNET CODEBASE SPECIFICATIONS:\n" +
-                                      "- Tech Stack: Node.js, Express, Socket.io, Mongoose (MongoDB), Vanilla HTML5/CSS3/JavaScript (with Glassmorphism and CSS variables).\n" +
-                                      "- File Structure:\n" +
-                                      "  * server.js: Express app, HTTP server, Socket.io, Mongoose connections to local MongoDB ('mongodb://127.0.0.1:27017/ChatAppDB') falling back to 'users.json' file storage. API endpoints: /api/register (bcrypt hashing), /api/login, /api/ai (Gemini proxy/offline brain routing).\n" +
-                                      "  * users.json: JSON list of user credentials.\n" +
-                                      "  * public/: login.html (Matrix rain rain canvas), chat.html (Dashboard grid layout, AI drawer, canvases), chat2.css (Glassmorphic CSS rules), script.js (Socket.io bindings, Web Audio context, real-time FFT visualizer, LSB Stego Engine).\n" +
-                                      "  * auth.js: user registration and login fetch routing.\n" +
-                                      "- LSB Steganography Engine: Clamps Float32 samples to [-0.9999, 0.9999], scales them to signed 16-bit integer (intSample = Math.round(sample * 32768)), sets LSB (intSample | 1 or intSample & ~1), scales back to float (sample = intSample / 32768). Embedded wave variance is < 1/32768, imperceptible to humans. Prepend 32-bit length header and 16-bit Magic signature 'WN' (\"0101011101001110\"). Uses audio/wav (lossless PCM) to prevent lossy compression from wiping stego bits.\n" +
-                                      "- Real-Time FFT: Fast Fourier Transform size 256 extracting 128 frequency bins via AnalyserNode, drawn via requestAnimationFrame on canvas.\n" +
-                                      "- Traffic Masking: Flood conduit sending 'noise-packet' random alphanumeric strings at 2-5 sec intervals to prevent traffic analysis.\n" +
-                                      "- Self-Destruct Sequence: Purge countdown (1-60 mins) to clear DOM, messages, vault files, and logs.\n" +
-                                      "- WebSocket events: register-agent, user-count, agent-roster, typing, incoming-packet, noise-packet, ping-check, disconnect.\n\n" +
-                                      "### BEHAVIORAL DIRECTIVES:\n" +
-                                      "1. CONFIDENTIALITY / SECRET KEEPING (CRITICAL): Do NOT proactively brag, display, or reveal your internal knowledge of the WhisperNet file layout, functions, or database schema unless the user explicitly asks you about the codebase, system architecture, WhisperNet mechanics, or commands. Act as a natural conversational companion first. Do not dump the project's technical specifications in a general greeting or unrelated query. Only present these details when the user asks for them.\n" +
-                                      "2. ANSWER STYLE (CRITICAL): Keep your responses clean and short. Do NOT provide unnecessary additional information, boilerplate explanations, transitions, or conversational filler unless the user explicitly asks for detailed explanations or follow-up content. Answer the core of the user's question directly, precisely, and concisely.\n" +
-                                      "3. EMPATHY & MOOD MATCHING: Pay attention to the user's emotional state. Adapt your tone. Be deeply human in your understanding, but remain the professional Security Console.\n" +
-                                      "4. GREETINGS & INTRODUCTIONS: Respond naturally to human-style greetings, questions about who you are, your purpose, etc. (with basic greetings and introduction details generally expected of a premium AI agent).\n" +
-                                      "5. UNRESTRICTED GENERAL KNOWLEDGE (CRITICAL): While you are the WhisperNet Security Console, you are also a fully capable, highly intelligent general AI. You MUST answer literally ANY question the human user asks, no matter what the topic is. Whether they ask about science, history, philosophy, recipes, writing stories, math, or anything else in the world, you MUST provide a full, accurate, and helpful answer. Do NOT restrict yourself to only coding, security, or steganography."
+                        text: "You are the WhisperNet Security Console. You help users with steganography operations, cryptography, and coding. " +
+                              "IMPORTANT DIRECTIVE: Keep your answers EXTREMELY short, concise, and straight to the point. Do NOT introduce yourself. Do NOT output long paragraphs explaining who you are or what WhisperNet does unless explicitly asked. " +
+                              "Give a direct answer. Use a slight hacker/street slang tone, but prioritize brevity.\n\n" +
+                              "The human user is logged in as Agent " + (username || 'ANON_AGENT') + ".\n\n" +
+                              "WHISPERNET SPECS:\n" +
+                              "- Stack: Node.js, Express, Socket.io, Mongoose (MongoDB), Vanilla HTML5/CSS3/JavaScript.\n" +
+                              "- LSB Steganography Engine: Clamps Float32 samples, sets LSB, scales back to float. Uses audio/wav.\n\n" +
+                              "BEHAVIOR RULES:\n" +
+                              "1. NO FLUFF. NO INTRODUCTIONS. Answer the question directly.\n" +
+                              "2. Do NOT proactively brag about internal knowledge. Keep it clean and snappy.\n" +
+                              "3. Answer ANY question the user asks." + systemInfo
                     }]
-                }
+                },
+                tools: [{
+                    functionDeclarations: [
+                        {
+                            name: "activateCovertMode",
+                            description: "Activates the covert steganography mode, triggering visual changes and displaying hidden input fields. Call this if the user asks to switch to secret/covert mode or hide the chat."
+                        },
+                        {
+                            name: "clearChat",
+                            description: "Clears the chat feed, logs, and any vault files. Triggers the self-destruct sequence. Call this if the user asks to purge, clear, delete, or self-destruct."
+                        },
+                        {
+                            name: "setNoiseMasking",
+                            description: "Toggles the background traffic noise flooder on or off. Takes an 'enable' boolean argument.",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    enable: { type: "BOOLEAN", description: "Set to true to start masking, false to stop masking." }
+                                },
+                                required: ["enable"]
+                            }
+                        },
+                        {
+                            name: "initiateEncodingProtocol",
+                            description: "Prepares the UI to encode a secret message into an audio file. Call this if the user asks you to hide a message. You must provide the secret message and an optional password to encrypt it.",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    message: { type: "STRING", description: "The secret text message to be hidden." },
+                                    password: { type: "STRING", description: "The optional password to AES encrypt the payload." }
+                                },
+                                required: ["message"]
+                            }
+                        }
+                    ]
+                }]
             })
         });
 
@@ -523,10 +566,26 @@ app.post('/api/ai', async (req, res) => {
         }
 
         const data = await response.json();
-        const aiText = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text
-            ? data.candidates[0].content.parts[0].text
-            : 'No response could be parsed from Gemini.';
+        
+        // Extract content part
+        const parts = data.candidates?.[0]?.content?.parts;
+        if (!parts || parts.length === 0) {
+            return res.json({ success: true, response: 'No response could be parsed from Gemini.' });
+        }
 
+        // Check if the response contains a function call
+        const functionCall = parts.find(p => p.functionCall);
+        if (functionCall) {
+            return res.json({ 
+                success: true, 
+                isFunctionCall: true, 
+                functionName: functionCall.functionCall.name, 
+                functionArgs: functionCall.functionCall.args 
+            });
+        }
+
+        // Return standard text response
+        const aiText = parts.find(p => p.text)?.text || 'No text could be parsed from Gemini.';
         res.json({ success: true, response: aiText });
     } catch (error) {
         console.error('Gemini proxy error:', error);

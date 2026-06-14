@@ -684,17 +684,29 @@ body.covert-active .covert-status-dot {
     opacity: 0;
 }
 
-#covert-handshake-overlay.sweep {
-    opacity: 1;
-    clip-path: circle(150% at 44px 32px);
-    animation: overlay-fade-out 1.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+/* Data-Stream Wipe Animation */
+.scanner-wipe {
+    position: fixed;
+    top: 0;
+    left: -100vw;
+    width: 200vw;
+    height: 100vh;
+    background: linear-gradient(90deg, transparent 48%, rgba(0,255,255,0.8) 49%, rgba(255,0,127,1) 50%, rgba(0,255,255,0.8) 51%, transparent 52%);
+    z-index: 9999999;
+    pointer-events: none;
+    opacity: 0;
 }
 
-@keyframes overlay-fade-out {
-    0% { opacity: 1; filter: brightness(1.3) contrast(1.1); }
-    75% { opacity: 1; }
-    100% { opacity: 0; filter: brightness(1) contrast(1); }
+.scanner-wipe.sweep-right {
+    opacity: 1;
+    animation: wipe-right 1.2s cubic-bezier(0.8, 0, 0.2, 1) forwards;
 }
+
+@keyframes wipe-right {
+    0% { left: -150vw; opacity: 1; filter: drop-shadow(0 0 20px #ff007f); }
+    100% { left: 50vw; opacity: 1; filter: drop-shadow(0 0 20px #ff007f); }
+}
+
 
 /* Slide animation for stego payload display */
 .payload-section {

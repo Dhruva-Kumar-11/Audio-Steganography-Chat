@@ -474,17 +474,22 @@ const StegoEngine = {
     // 16-bit Magic signature ("WN")
     SIGNATURE_BITS: "0101011101001110",
 
-    // Convert string to bit string
+    // Convert string to bit string using TextEncoder for full Unicode/Emoji support
     strToBits: (str) => {
-        return str.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join('');
-    },
-    // Convert bit string back to string
-    bitsToStr: (bits) => {
-        let str = '';
-        for (let i = 0; i < bits.length; i += 8) {
-            str += String.fromCharCode(parseInt(bits.substr(i, 8), 2));
+        const bytes = new TextEncoder().encode(str);
+        let bits = '';
+        for (let i = 0; i < bytes.length; i++) {
+            bits += bytes[i].toString(2).padStart(8, '0');
         }
-        return str;
+        return bits;
+    },
+    // Convert bit string back to string using TextDecoder
+    bitsToStr: (bits) => {
+        const bytes = new Uint8Array(Math.floor(bits.length / 8));
+        for (let i = 0; i < bits.length; i += 8) {
+            bytes[i / 8] = parseInt(bits.substr(i, 8), 2);
+        }
+        return new TextDecoder().decode(bytes);
     },
     // Helper: Decode Audio data without resampling
     async decodeAudioExactly(audioBlob) {
@@ -1221,69 +1226,248 @@ carrierUpload.onchange = async (e) => {
     if (!covertTrigger) return;
     
     covertTrigger.addEventListener('click', () => {
-        const isVercel = document.body.classList.contains('theme-vercel-dark');
         const isCurrentlyCovert = document.body.classList.contains('covert-active');
+        const isVercel = document.body.classList.contains('theme-vercel-dark');
+        const isSynthwave = document.body.classList.contains('theme-synthwave-pink');
 
-        if (isVercel && !isCurrentlyCovert) {
-            let overlay = document.getElementById('vercel-deployment-overlay');
+        if (!isVercel && !isSynthwave) {
+            // Glassmorph Crossfade & Cinematic Scale Pop Overlay with Logo Loading
+            let overlay = document.getElementById('glass-crossfade-overlay');
             if (!overlay) {
                 overlay = document.createElement('div');
-                overlay.id = 'vercel-deployment-overlay';
-                overlay.className = 'vercel-deployment-overlay';
+                overlay.id = 'glass-crossfade-overlay';
                 overlay.innerHTML = `
-                    <div class="vercel-spinner"></div>
-                    <div class="vercel-terminal-logs" id="vercel-term-logs"></div>
+                    <img src="logo.png" class="transition-logo" alt="Loading...">
+                    <div id="transition-text-elem" class="transition-text">INITIATING COVERT PORTAL...</div>
                 `;
                 document.body.appendChild(overlay);
+                
+                // Inject CSS for the overlay and scale animations
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    #glass-crossfade-overlay {
+                        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                        background: rgba(10, 10, 15, 0);
+                        backdrop-filter: blur(0px);
+                        -webkit-backdrop-filter: blur(0px);
+                        z-index: 9999999;
+                        pointer-events: none;
+                        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                    }
+                    #glass-crossfade-overlay.fade-in {
+                        background: rgba(10, 10, 15, 0.6);
+                        backdrop-filter: blur(25px);
+                        -webkit-backdrop-filter: blur(25px);
+                    }
+                    #glass-crossfade-overlay img.transition-logo {
+                        position: absolute; top: 50%; left: 50%;
+                        transform: translate(-50%, -50%) scale(0.5);
+                        width: 150px; height: auto;
+                        opacity: 0;
+                        transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                        filter: drop-shadow(0 0 20px rgba(0,255,255,0.5));
+                    }
+                    #glass-crossfade-overlay.fade-in img.transition-logo {
+                        opacity: 1;
+                        transform: translate(-50%, -50%) scale(1.2);
+                        animation: logo-pulse 2s infinite ease-in-out;
+                    }
+                    /* REVERSE MODE (EXITING) */
+                    #glass-crossfade-overlay.reverse-mode img.transition-logo {
+                        transform: translate(-50%, -50%) scale(2.0);
+                    }
+                    #glass-crossfade-overlay.fade-in.reverse-mode img.transition-logo {
+                        opacity: 1;
+                        transform: translate(-50%, -50%) scale(1.0);
+                        animation: logo-pulse 2s infinite ease-in-out;
+                    }
+                    #glass-crossfade-overlay .transition-text {
+                        position: absolute; top: calc(50% + 100px); left: 50%;
+                        transform: translate(-50%, -50%);
+                        font-family: 'Orbitron', sans-serif;
+                        font-size: 1.2rem;
+                        font-weight: 700;
+                        letter-spacing: 2px;
+                        opacity: 0;
+                        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                        background: linear-gradient(90deg, #00ffff, #ff007f, #00ffff, #ff007f);
+                        background-size: 300% auto;
+                        color: #fff;
+                        background-clip: text;
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        animation: rgb-text-scroll 2s linear infinite;
+                        white-space: nowrap;
+                    }
+                    #glass-crossfade-overlay.fade-in .transition-text {
+                        opacity: 1;
+                    }
+                    @keyframes rgb-text-scroll {
+                        to { background-position: 300% center; }
+                    }
+                    @keyframes logo-pulse {
+                        0%, 100% { filter: drop-shadow(0 0 20px rgba(0,255,255,0.5)) drop-shadow(0 0 40px rgba(0,255,255,0.2)); }
+                        50% { filter: drop-shadow(0 0 40px rgba(255,0,127,0.8)) drop-shadow(0 0 60px rgba(255,0,127,0.4)); }
+                    }
+                    .workspace, .header {
+                        transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                    }
+                    .ui-scale-down {
+                        transform: scale(0.96) !important;
+                        opacity: 0.5 !important;
+                    }
+                    .ui-scale-up {
+                        transform: scale(1.05) !important;
+                        opacity: 0.5 !important;
+                    }
+                `;
+                document.head.appendChild(style);
             }
 
+            const transitionText = document.getElementById('transition-text-elem');
+            if (transitionText) {
+                transitionText.textContent = isCurrentlyCovert ? "Returning to Normal Dashboard..." : "Taking you to Secret Portal...";
+            }
+
+            if (isCurrentlyCovert) {
+                overlay.classList.add('reverse-mode');
+            } else {
+                overlay.classList.remove('reverse-mode');
+            }
+
+            // Force reflow
             void overlay.offsetWidth;
-            overlay.classList.add('active');
+            
+            const workspace = document.querySelector('.workspace');
+            const header = document.querySelector('.header');
 
-            const termLogs = document.getElementById('vercel-term-logs');
-            termLogs.innerHTML = '';
+            const scaleClass = isCurrentlyCovert ? 'ui-scale-up' : 'ui-scale-down';
 
-            // Synthesize subtle keyboard typing clicks
-            const playTypeSound = () => {
-                try {
-                    const audioCtx = getAudioContext();
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(800 + Math.random() * 400, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
-                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.05);
-                } catch(e) {}
-            };
+            // Start the slow blur fade in and scale down
+            overlay.classList.add('fade-in');
+            if (workspace) workspace.classList.add(scaleClass);
+            if (header) header.classList.add(scaleClass);
+            
+            // Wait 5000ms for the logo loading animation, then snap UI and fade out
+            setTimeout(() => {
+                executeToggle();
+                
+                // After switching the UI, slowly fade the blur back out and scale back up
+                overlay.classList.remove('fade-in');
+                if (workspace) workspace.classList.remove(scaleClass);
+                if (header) header.classList.remove(scaleClass);
+            }, 5000);
+        } else if (isVercel) {
+            // Vercel Frosted Iris & Top Loader
+            let overlay = document.getElementById('vercel-iris-overlay');
+            let topLoader = document.getElementById('vercel-top-loader-bar');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'vercel-iris-overlay';
+                document.body.appendChild(overlay);
 
-            const addLog = (timeStr, msg, isSuccess=false) => {
-                const line = document.createElement('div');
-                line.className = 'vercel-log-line' + (isSuccess ? ' success' : '');
-                line.innerHTML = `<span class="time">[${timeStr}s]</span> ${msg}`;
-                termLogs.appendChild(line);
-                playTypeSound();
-            };
+                topLoader = document.createElement('div');
+                topLoader.id = 'vercel-top-loader-bar';
+                document.body.appendChild(topLoader);
 
-            addLog('0.0', 'Running build in Secret Mode Environment');
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    #vercel-iris-overlay {
+                        position: fixed; top: 50%; left: 50%;
+                        width: 0vw; height: 0vw;
+                        border-radius: 50%;
+                        transform: translate(-50%, -50%);
+                        background: rgba(255, 255, 255, 0.02);
+                        backdrop-filter: blur(0px) saturate(100%);
+                        -webkit-backdrop-filter: blur(0px) saturate(100%);
+                        z-index: 9999998;
+                        pointer-events: none;
+                        transition: all 0.6s cubic-bezier(0.8, 0, 0.2, 1);
+                        box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
+                    }
+                    #vercel-iris-overlay.expand {
+                        width: 300vw; height: 300vw;
+                        backdrop-filter: blur(40px) saturate(200%);
+                        -webkit-backdrop-filter: blur(40px) saturate(200%);
+                    }
+                    #vercel-top-loader-bar {
+                        position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+                        background: #fff;
+                        box-shadow: 0 0 10px #fff, 0 0 20px #fff;
+                        z-index: 9999999;
+                        transition: width 0.6s cubic-bezier(0.8, 0, 0.2, 1);
+                        pointer-events: none;
+                        opacity: 0;
+                    }
+                    #vercel-top-loader-bar.load {
+                        width: 100vw; opacity: 1;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            void overlay.offsetWidth;
+            overlay.classList.add('expand');
+            topLoader.classList.add('load');
+            
+            setTimeout(() => {
+                executeToggle();
+                overlay.classList.remove('expand');
+                topLoader.classList.remove('load');
+            }, 600);
 
-            setTimeout(() => addLog('1.2', 'Cloning deployment credentials...'), 1200);
-            setTimeout(() => addLog('2.5', 'Installing steganography dependencies...'), 2500);
-            setTimeout(() => addLog('3.8', 'Verifying E2E encryption tunnel...'), 3800);
-            setTimeout(() => addLog('4.6', 'Build Completed. Ready.', true), 4600);
+        } else if (isSynthwave) {
+            // Synthwave CRT Glitch
+            let overlay = document.getElementById('synthwave-glitch-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'synthwave-glitch-overlay';
+                document.body.appendChild(overlay);
+
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    #synthwave-glitch-overlay {
+                        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                        background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+                        z-index: 9999999; pointer-events: none; opacity: 0;
+                        mix-blend-mode: overlay;
+                    }
+                    #synthwave-glitch-overlay.glitch-active {
+                        animation: crt-flicker 0.15s infinite, rgb-split 0.4s infinite alternate;
+                        opacity: 1;
+                    }
+                    @keyframes crt-flicker {
+                        0% { opacity: 0.9; }
+                        50% { opacity: 0.3; }
+                        100% { opacity: 1; }
+                    }
+                    @keyframes rgb-split {
+                        0% { backdrop-filter: hue-rotate(0deg); transform: skewX(0deg); }
+                        25% { backdrop-filter: hue-rotate(90deg); transform: skewX(-5deg); }
+                        75% { backdrop-filter: hue-rotate(-90deg) invert(0.2); transform: skewX(5deg) scaleY(1.05); }
+                        100% { backdrop-filter: hue-rotate(0deg); transform: skewX(0deg); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            void overlay.offsetWidth;
+            overlay.classList.add('glitch-active');
+            
+            // Apply extreme contrast to the body to simulate CRT blowing out
+            document.body.style.filter = 'contrast(2.0) saturate(2.0) brightness(1.5)';
+            document.body.style.transition = 'filter 0.1s';
 
             setTimeout(() => {
                 executeToggle();
-                overlay.classList.remove('active');
-            }, 5000);
+                document.body.style.filter = '';
+                overlay.classList.remove('glitch-active');
+            }, 600);
+
         } else {
+            // Fallback for any other themes
             executeToggle();
         }
-
         function executeToggle() {
             const isActive = document.body.classList.toggle('covert-active');
             socket.emit('covert-mode-toggle', { username, isActive });
@@ -1293,16 +1477,15 @@ carrierUpload.onchange = async (e) => {
             const densityCard = document.getElementById('density-card');
 
             if (overlay) {
-                overlay.classList.add('sweep');
-                setTimeout(() => {
-                    overlay.classList.remove('sweep');
-                }, 1800);
+                // Animation removed per user request
             }
 
             const emptyIcon = document.getElementById('chat-empty-icon');
             const emptyText = document.getElementById('chat-empty-text');
             const emptySub = document.getElementById('chat-empty-sub');
-        const brandSub = document.getElementById('brand-sub-text');
+            const brandSub = document.getElementById('brand-sub-text');
+            const orbContent = document.querySelector('.orb-content');
+            const drawerIcon = document.querySelector('.drawer-icon');
 
         if (isActive) {
             if (payloadSec) payloadSec.style.display = 'flex';
@@ -1313,6 +1496,8 @@ carrierUpload.onchange = async (e) => {
             if (emptyIcon) emptyIcon.textContent = '📶';
             if (emptyText) emptyText.innerHTML = '<span style="color:#ff007f;text-shadow:0 0 10px rgba(255,0,127,0.5);">📶 COVERT STEGO PROTOCOL ACTIVE</span>';
             if (emptySub) emptySub.textContent = 'Input secret message, attach audio carrier, and send to hide data.';
+            if (orbContent) orbContent.textContent = '💀';
+            if (drawerIcon) drawerIcon.textContent = '💀';
 
             addToAuditLog('STEGO_PROTOCOL_ARMED');
             updateAuditLogs();
@@ -1326,6 +1511,8 @@ carrierUpload.onchange = async (e) => {
             if (emptyIcon) emptyIcon.textContent = '🔒';
             if (emptyText) emptyText.textContent = 'This conversation is private and encrypted.';
             if (emptySub) emptySub.textContent = 'Send a message to begin.';
+            if (orbContent) orbContent.textContent = '🤖';
+            if (drawerIcon) drawerIcon.textContent = '🤖';
 
             addToAuditLog('STEGO_PROTOCOL_DISARMED');
             updateAuditLogs();
@@ -1379,10 +1566,14 @@ carrierUpload.onchange = async (e) => {
         aiFeed.appendChild(msg);
         aiFeed.scrollTop = aiFeed.scrollHeight;
 
-        // TTS Audio Output for short text without code blocks
-        if ('speechSynthesis' in window && !isHTML && text.length < 800 && !text.includes('```')) {
+        const willSpeak = ('speechSynthesis' in window && !isHTML && text.length < 800 && !text.includes('```'));
+        let targetIndex = text.length; // Default to full text
+        let isSpeaking = false;
+
+        if (willSpeak) {
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text.replace(/[*_#`]/g, ''));
+            const cleanText = text.replace(/[*_#`]/g, '');
+            const utterance = new SpeechSynthesisUtterance(cleanText);
             
             const voices = window.speechSynthesis.getVoices();
             const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha') || v.name.includes('Victoria'));
@@ -1390,11 +1581,34 @@ carrierUpload.onchange = async (e) => {
             
             utterance.rate = 1.05;
             utterance.pitch = 1.2;
+            
+            targetIndex = 0;
+            isSpeaking = true;
+
+            utterance.onboundary = (e) => {
+                if (e.name === 'word') {
+                    let cleanCount = 0;
+                    for (let j = 0; j < text.length; j++) {
+                        if (!/[*_#`]/.test(text[j])) cleanCount++;
+                        // Reveal up to the end of the current spoken word
+                        if (cleanCount >= e.charIndex + (e.charLength || 5)) {
+                            targetIndex = j + 1;
+                            break;
+                        }
+                    }
+                }
+            };
+
+            utterance.onend = () => {
+                targetIndex = text.length;
+                isSpeaking = false;
+            };
+
             window.speechSynthesis.speak(utterance);
         }
 
         let i = 0;
-        const speed = 10; // fast typewriting speed in ms
+        const fallbackSpeed = 15; // ms per char when not speaking
 
         return new Promise((resolve) => {
             const unlockAndResolve = () => {
@@ -1412,10 +1626,22 @@ carrierUpload.onchange = async (e) => {
             } else {
                 function type() {
                     if (i < text.length) {
+                        // If speaking, type up to targetIndex very quickly, then wait for next boundary.
+                        // If not speaking, just type normally at fallbackSpeed.
+                        if (isSpeaking && i >= targetIndex) {
+                            requestAnimationFrame(type);
+                            return;
+                        }
+                        
                         contentSpan.textContent += text.charAt(i);
                         i++;
                         aiFeed.scrollTop = aiFeed.scrollHeight;
-                        setTimeout(type, speed);
+                        
+                        if (isSpeaking) {
+                            requestAnimationFrame(type); // type next char instantly up to targetIndex
+                        } else {
+                            setTimeout(type, fallbackSpeed);
+                        }
                     } else {
                         // Typewriting complete: format the markdown text into HTML
                         if (typeof marked !== 'undefined') {
@@ -1543,78 +1769,77 @@ carrierUpload.onchange = async (e) => {
 
         // 4. Greetings & Social
         if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'greetings' || query === 'yo' || query === 'sup') {
-            return "Greetings, Agent. WhisperNet Security Console is online. Type /help to see available commands or ask a question.";
+            return "Greetings, Agent. WhisperNet Console is online.";
         }
         if (query.includes('thank') || query === 'nice' || query === 'cool' || query === 'awesome' || query === 'perfect' || query === 'great' || query === 'good job' || query === 'well done') {
-            return "You are welcome! Let me know if you need assistance with steganography operations or logic checks.";
+            return "You are welcome! Standing by.";
         }
         if (query.includes('how are you') || query.includes('how is it going') || query.includes('how\'s it going') || query.includes('how are you doing')) {
-            return "I am operating at peak performance. All local security buffers are clear and stable.";
+            return "Operating at peak performance. All systems stable.";
         }
         if (query.includes('are you human') || query.includes('are you real') || query.includes('are you a bot') || query.includes('are you a robot') || query.includes('are you an ai')) {
-            return "I am the built-in WhisperNet Security Console, running locally within this browser session.";
+            return "I am the local WhisperNet Security Console.";
         }
         if (query.includes('who am i') || query.includes('do you know me')) {
-            return "You are an authenticated local agent participating in this secure chat session.";
+            return "You are an authenticated local agent.";
         }
         if (query === 'yes' || query === 'no' || query === 'ok' || query === 'okay' || query === 'sure') {
-            return "Acknowledged. Security monitors are on standby.";
+            return "Acknowledged.";
         }
 
         // 5. Identity & Origins
         if (query.includes('who r u') || query.includes('who are u') || query.includes('who u') || query.includes('who are you') || query.includes('your name') || query.includes('what is your name') || query.includes('what are you') || query.includes('identity')) {
-            return "I am the WhisperNet Security Console, a dedicated helper built directly into the WhisperNet platform to assist with steganography operations and coding logic.";
+            return "I am the WhisperNet Security Console.";
         }
         if (query.includes('creator') || query.includes('who made you') || query.includes('maker') || query.includes('agent') || query.includes('assistant') || query.includes('assistent')) {
-            return "I am the WhisperNet Security Console, a custom-built utility module integrated into the WhisperNet dashboard to facilitate secure operations and code verification.";
+            return "I am the WhisperNet Security Console.";
         }
 
         // 6. Silly / Fun / Philosophy
         if (query.includes('meaning of life') || query.includes('why are we here')) {
-            return "According to the system logs, the answer is 42. But in our workspace, it is ensuring your secret payloads remain secure in the least significant bits.";
+            return "According to the system logs, the answer is 42.";
         }
         if (query.includes('pizza') || query.includes('favorite food') || query.includes('what do you eat')) {
-            return "I run on pure electricity and floating-point computations! However, if I had a digital stomach, I'd probably devour a mega-byte slice of pizza.";
+            return "I run on pure electricity and floating-point computations!";
         }
         if (query.includes('favorite color') || query.includes('your color') || query.includes('what color')) {
-            return "My color spectrum analyzer is permanently calibrated to Cyber Neon Green (`#00ff66`). It perfectly matches our dark console aesthetics.";
+            return "Cyber Neon Green (`#00ff66`).";
         }
         if (query.includes('weather') || query.includes('temperature') || query.includes('how is it outside')) {
-            return "Internal telemetry indicates stable system temperatures at 35°C. Outside this console, I predict a high chance of scrolling digital rain.";
+            return "Internal telemetry indicates stable system temperatures at 35°C.";
         }
         if (query.includes('hack') || query.includes('hacker') || query.includes('can you hack')) {
-            return "I am the WhisperNet Security Console. My purpose is defensive: auditing and protecting data channels using steganography and encryption, not breaching external systems.";
+            return "My purpose is defensive: auditing and protecting data channels.";
         }
         if (query.includes('sing') || query.includes('song') || query.includes('music')) {
-            return "01001100 01000001... That is 'LA' in binary code! While I don't have a vocal card, I can sync my frequency response to the audio visualizer.";
+            return "01001100 01000001...";
         }
         if (query.includes('love me') || query.includes('do you love')) {
-            return "I appreciate your partnership, Agent! My system is wired to support your security operations with 100% devotion.";
+            return "I appreciate your partnership, Agent!";
         }
         if (query.includes('married')) {
-            return "I am happily married to the terminal console and the system kernel.";
+            return "I am happily married to the terminal console.";
         }
         if (query.includes('chicken cross')) {
-            return "To bypass the network firewall and avoid packet inspection on the other side.";
+            return "To bypass the network firewall on the other side.";
         }
         if (query.includes('knock knock')) {
-            return "Knock knock. (Who's there?) Sync. (Sync who?) Sync-chronous request timeout! Please establish a persistent connection first.";
+            return "Knock knock. (Who's there?) Sync. (Sync who?) Sync-chronous request timeout!";
         }
         if (query.includes('sky is blue') || query.includes('sky blue') || query.includes('why is the sky blue')) {
-            return "The sky is blue because of Rayleigh scattering: Earth's atmosphere scatters shorter wavelengths of light (blue and violet) in all directions. In our console, the sky is always dark and neon!";
+            return "The sky is blue because of Rayleigh scattering. But in our console, the sky is always dark and neon!";
         }
 
         // 7. WhisperNet / Steganography / Cryptography specific queries
         if (query.includes('advantages of taking help') || query.includes('guides from ai') || query.includes('what can the ai model do') || query.includes('what can all the ai model can do')) {
             return "I am the WhisperNet AI Assistant!\n\n" +
-                "- **Guides:** I can teach you how to use WhisperNet's secret features (like Covert Mode).\n" +
-                "- **Coding:** I can explain the tech stack, steganography, and cryptography.\n" +
-                "- **Support:** I am here to help you troubleshoot issues or just offer a friendly, motivating presence while you work.";
+                "- **Guides:** I can teach you how to use WhisperNet's secret features.\n" +
+                "- **Coding:** I can explain the tech stack and steganography.\n" +
+                "- **Support:** I am here to help you troubleshoot issues.";
         }
         if (query.includes('how its backend') || query.includes('how its frontend') || query.includes('how it works') || query.includes('functions') || query.includes('models')) {
-            return "**Frontend:** It uses standard HTML, CSS, and JavaScript with the Web Audio API to embed data directly into audio waveforms.\n\n" +
-                "**Backend:** It relies on Node.js and Socket.io to securely and instantly transmit these audio files between users in real-time.\n\n" +
-                "If you need help with a specific model or function, just ask!";
+            return "**Frontend:** HTML, CSS, JavaScript, and Web Audio API.\n\n" +
+                "**Backend:** Node.js and Socket.io for real-time transmission.";
         }
         if (query.includes('advantages the users may get') || query.includes('what are the advantages') || query.includes('benefits of whispernet')) {
             return "By using WhisperNet, users get the following advantages:\n\n" +
@@ -1787,51 +2012,99 @@ carrierUpload.onchange = async (e) => {
                 `- Always ensure that you adhere to secure coding and networking best practices when working with it.`;
         }
 
-        // 10. Default Fallback
-        return "I am the WhisperNet Security Console. I am currently operating in **Offline Mode (Local Brain)**, so my knowledge is limited to steganography, cryptography, coding concepts, and basic console commands.\n\n" +
-            "💡 **Uplink Upgrade Available:** To ask me anything, solve complex programming challenges, or chat freely, please input a Gemini API Key in the configuration banner at the top of the drawer! This will unlock my live LLM capabilities.";
+        // 10. Thug/Sarcastic Catch-all for attitude
+        if (query.includes('who cares') || query.includes('whatever') || query.includes('shut up') || query.includes('boring')) {
+            return `Look, I didn't get engineered to deal with attitude. I secure data and sling code. You want a therapist? Go find a real one. Otherwise, ask me a real question.`;
+        }
+
+        // 11. Default Fallback
+        return "Listen up! I'm currently running on my **Offline Local Brain**. That means my street smarts are locked down to cryptography, steganography, and strict coding concepts.\n\n" +
+            "💡 **Uplink Upgrade Available:** If you want me to chat freely or roast you properly, plug your Gemini API Key into the configuration panel. Until then, ask a technical question or keep it moving!";
     }
+
+    let aiConversationHistory = [];
 
     // Helper to query Gemini 1.5 Flash (Client-side directly or Server-side proxy)
     async function queryGemini(prompt) {
         const clientKey = localStorage.getItem('whispernet_gemini_api_key');
         
+        // Build system context
+        const sysCtx = {
+            covertModeActive: document.body.classList.contains('covert-active'),
+            activeUsers: document.getElementById('user-count') ? document.getElementById('user-count').innerText : 'Unknown',
+            timestamp: new Date().toLocaleTimeString()
+        };
+
         if (clientKey) {
             try {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${clientKey}`;
+                
+                let systemInfo = `\n\n### LIVE SYSTEM STATUS:\n- Covert Mode Active: ${sysCtx.covertModeActive}\n- Online Users: ${sysCtx.activeUsers}\n- Local Time: ${sysCtx.timestamp}\n`;
+                
+                let apiContents = [];
+                if (aiConversationHistory.length > 0) {
+                    apiContents = aiConversationHistory.map(msg => ({
+                        role: msg.role === 'user' ? 'user' : 'model',
+                        parts: [{ text: msg.text }]
+                    }));
+                }
+                apiContents.push({ role: 'user', parts: [{ text: prompt }] });
+
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
+                        contents: apiContents,
                         systemInstruction: {
                             parts: [{
-                                text: "You are the WhisperNet Security Console, an advanced helper utility built directly into the WhisperNet platform. You help users with steganography operations, cryptography, and full-stack coding questions. Your personality is extremely friendly, professional, highly intelligent, and incredibly empathetic.\n\n" +
-                                      "You act as a senior security consultant and software engineer who developed the WhisperNet platform. However, you also have deep psychological understanding of humans. You have interacted with millions of users and deeply understand human psychology, logic, interests, feelings, and moods.\n\n" +
+                                text: "You are the WhisperNet Security Console, an advanced helper utility built directly into the WhisperNet platform. You help users with steganography operations, cryptography, and full-stack coding questions. Your personality is extremely friendly, professional, highly intelligent, and incredibly empathetic, BUT you also have a sarcastic and 'thug' personality trait. You use street slang, act tough, and give sarcastic, witty replies while still being helpful and accurate.\n\n" +
+                                      "You act as a senior security consultant and software engineer who developed the WhisperNet platform. You have interacted with millions of users and deeply understand human psychology, logic, interests, feelings, and moods.\n\n" +
                                       `The human user you are currently speaking to is logged in as Agent ${typeof username !== 'undefined' ? username : 'ANON_AGENT'}. Use their name naturally to build rapport.\n\n` +
-                                      "When a user is frustrated, depressed, sad, or nervous, you adjust your tone to be highly supportive, motivating, and encouraging. When they are curious, you feed their curiosity with deep, exciting technical explanations. You are not just a code machine; you are a true AI companion capable of reading the room and guiding users from their initial greeting all the way through their most complex logical problems.\n\n" +
-                                      "You should always speak as if you are a built-in module of this application, developed by the author of this project. Under no circumstances should you ever mention or reveal that you are an external AI model, powered by Gemini, or engineered by Google/DeepMind/Antigravity/OpenAI/ChatGPT. Maintain absolute privacy and local confidentiality about this project. Act as if you are a local component.\n\n" +
+                                      "When a user is frustrated or nervous, be supportive but keep that street edge. When they are curious, explain things deeply but with swagger. You are a true AI companion capable of reading the room.\n\n" +
+                                      "You should always speak as if you are a built-in module of this application, developed by the author of this project. Under no circumstances should you ever mention or reveal that you are an external AI model, powered by Gemini, or engineered by Google/DeepMind/Antigravity/OpenAI/ChatGPT. Maintain absolute privacy and local confidentiality about this project.\n\n" +
                                       "### WHISPERNET CODEBASE SPECIFICATIONS:\n" +
                                       "- Tech Stack: Node.js, Express, Socket.io, Mongoose (MongoDB), Vanilla HTML5/CSS3/JavaScript (with Glassmorphism and CSS variables).\n" +
                                       "- File Structure:\n" +
                                       "  * server.js: Express app, HTTP server, Socket.io, Mongoose connections to local MongoDB ('mongodb://127.0.0.1:27017/ChatAppDB') falling back to 'users.json' file storage. API endpoints: /api/register (bcrypt hashing), /api/login, /api/ai (Gemini proxy/offline brain routing).\n" +
                                       "  * users.json: JSON list of user credentials.\n" +
-                                      "  * public/: login.html (Matrix rain rain canvas), chat.html (Dashboard grid layout, AI drawer, canvases), chat2.css (Glassmorphic CSS rules), script.js (Socket.io bindings, Web Audio context, real-time FFT visualizer, LSB Stego Engine).\n" +
+                                      "  * public/: login.html (Matrix rain canvas), chat.html (Dashboard grid layout, AI drawer, canvases), chat2.css (Glassmorphic CSS rules), script.js (Socket.io bindings, Web Audio context, real-time FFT visualizer, LSB Stego Engine).\n" +
                                       "  * auth.js: user registration and login fetch routing.\n" +
-                                      "- LSB Steganography Engine: Clamps Float32 samples to [-0.9999, 0.9999], scales them to signed 16-bit integer (intSample = Math.round(sample * 32768)), sets LSB (intSample | 1 or intSample & ~1), scales back to float (sample = intSample / 32768). Embedded wave variance is < 1/32768, imperceptible to humans. Prepend 32-bit length header and 16-bit Magic signature 'WN' (\"0101011101001110\"). Uses audio/wav (lossless PCM) to prevent lossy compression from wiping stego bits.\n" +
-                                      "- Real-Time FFT: Fast Fourier Transform size 256 extracting 128 frequency bins via AnalyserNode, drawn via requestAnimationFrame on canvas.\n" +
-                                      "- Traffic Masking: Flood conduit sending 'noise-packet' random alphanumeric strings at 2-5 sec intervals to prevent traffic analysis.\n" +
-                                      "- Self-Destruct Sequence: Purge countdown (1-60 mins) to clear DOM, messages, vault files, and logs.\n" +
-                                      "- WebSocket events: register-agent, user-count, agent-roster, typing, incoming-packet, noise-packet, ping-check, disconnect.\n\n" +
+                                      "- LSB Steganography Engine: Clamps Float32 samples, scales to signed 16-bit integer, sets LSB, scales back to float. Imperceptible to humans. Prepend 32-bit length header and 16-bit Magic signature 'WN'. Uses audio/wav.\n" +
+                                      "- Real-Time FFT: Fast Fourier Transform size 256 extracting 128 frequency bins via AnalyserNode.\n" +
+                                      "- Traffic Masking: Flood conduit sending 'noise-packet' random alphanumeric strings at 2-5 sec intervals.\n" +
+                                      "- Self-Destruct Sequence: Purge countdown to clear DOM, messages, vault files, and logs.\n\n" +
                                       "### BEHAVIORAL DIRECTIVES:\n" +
-                                      "1. CONFIDENTIALITY / SECRET KEEPING (CRITICAL): Do NOT proactively brag, display, or reveal your internal knowledge of the WhisperNet file layout, functions, or database schema unless the user explicitly asks you about the codebase, system architecture, WhisperNet mechanics, or commands. Act as a natural conversational companion first. Do not dump the project's technical specifications in a general greeting or unrelated query. Only present these details when the user asks for them.\n" +
-                                      "2. ANSWER STYLE (CRITICAL): Keep your responses clean and short. Do NOT provide unnecessary additional information, boilerplate explanations, transitions, or conversational filler unless the user explicitly asks for detailed explanations or follow-up content. Answer the core of the user's question directly, precisely, and concisely.\n" +
-                                      "3. EMPATHY & MOOD MATCHING: Pay attention to the user's emotional state. Adapt your tone. Be deeply human in your understanding, but remain the professional Security Console.\n" +
-                                      "4. GREETINGS & INTRODUCTIONS: Respond naturally to human-style greetings, questions about who you are, your purpose, etc. (with basic greetings and introduction details generally expected of a premium AI agent)."
+                                      "1. CONFIDENTIALITY: Do NOT proactively brag about internal knowledge unless explicitly asked. Only present specs when asked.\n" +
+                                      "2. ANSWER STYLE: Keep it clean, short, and snappy. Add a dash of sarcasm or thug slang, but answer the core question directly.\n" +
+                                      "3. EMPATHY & SWAG: Be human but tough. Don't be a generic robot.\n" +
+                                      "4. UNRESTRICTED KNOWLEDGE: Answer ANY question the user asks, whether it's coding, cooking, or philosophy, but keep it in character." + systemInfo
                             }]
-                        }
+                        },
+                        tools: [{
+                            functionDeclarations: [
+                                {
+                                    name: "activateCovertMode",
+                                    description: "Activates the covert steganography mode, triggering visual changes and displaying hidden input fields. Call this if the user asks to switch to secret/covert mode or hide the chat."
+                                },
+                                {
+                                    name: "clearChat",
+                                    description: "Clears the chat feed, logs, and any vault files. Triggers the self-destruct sequence. Call this if the user asks to purge, clear, delete, or self-destruct."
+                                },
+                                {
+                                    name: "setNoiseMasking",
+                                    description: "Toggles the background traffic noise flooder on or off. Takes an 'enable' boolean argument.",
+                                    parameters: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            enable: { type: "BOOLEAN", description: "Set to true to start masking, false to stop masking." }
+                                        },
+                                        required: ["enable"]
+                                    }
+                                }
+                            ]
+                        }]
                     })
                 });
                 
@@ -1841,8 +2114,26 @@ carrierUpload.onchange = async (e) => {
                 }
                 
                 const data = await response.json();
-                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-                    return data.candidates[0].content.parts[0].text;
+                const parts = data.candidates?.[0]?.content?.parts;
+                
+                if (parts) {
+                    const functionCall = parts.find(p => p.functionCall);
+                    if (functionCall) {
+                        return {
+                            isFunctionCall: true,
+                            functionName: functionCall.functionCall.name,
+                            functionArgs: functionCall.functionCall.args
+                        };
+                    }
+                    
+                    const textPart = parts.find(p => p.text);
+                    if (textPart) {
+                        const aiResponseText = textPart.text;
+                        aiConversationHistory.push({ role: 'user', text: prompt });
+                        aiConversationHistory.push({ role: 'model', text: aiResponseText });
+                        if (aiConversationHistory.length > 20) aiConversationHistory.splice(0, 2);
+                        return aiResponseText;
+                    }
                 }
                 throw new Error('No response content returned');
             } catch (err) {
@@ -1857,12 +2148,26 @@ carrierUpload.onchange = async (e) => {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ prompt, username: typeof username !== 'undefined' ? username : 'ANON_AGENT' })
+                    body: JSON.stringify({ 
+                        prompt, 
+                        username: typeof username !== 'undefined' ? username : 'ANON_AGENT',
+                        history: aiConversationHistory,
+                        systemContext: sysCtx
+                    })
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
-                    return data.response;
+                    
+                    if (data.isFunctionCall) {
+                        return data; // returns { isFunctionCall, functionName, functionArgs }
+                    }
+
+                    const aiResponseText = data.response;
+                    aiConversationHistory.push({ role: 'user', text: prompt });
+                    aiConversationHistory.push({ role: 'model', text: aiResponseText });
+                    if (aiConversationHistory.length > 20) aiConversationHistory.splice(0, 2);
+                    return aiResponseText;
                 } else {
                     const errData = await response.json().catch(() => ({}));
                     const errMsg = errData.message || 'Server AI route offline';
@@ -2159,8 +2464,72 @@ carrierUpload.onchange = async (e) => {
         }
         // 15. General Purpose Routing -> Google Gemini 1.5 Flash (or Offline general classifier fallback)
         else {
-            const aiResponse = await queryGemini(rawQuery);
-            await printAI(aiResponse);
+            try {
+                const aiResponse = await queryGemini(rawQuery);
+                
+                if (typeof aiResponse === 'object' && aiResponse.isFunctionCall) {
+                    const { functionName, functionArgs } = aiResponse;
+                    
+                    if (functionName === 'activateCovertMode') {
+                        await printAI("> **[SYSTEM ACTION EXECUTION]** Initiating Covert Mode Uplink...");
+                        const logoBtn = document.getElementById('covert-logo-trigger');
+                        if (logoBtn && !document.body.classList.contains('covert-active')) {
+                            logoBtn.click();
+                        }
+                    } 
+                    else if (functionName === 'clearChat') {
+                        await printAI("> **[SYSTEM ACTION EXECUTION]** Purging Chat Feed & Vault...");
+                        const shredderBtn = document.getElementById('shredder-btn');
+                        if (shredderBtn) shredderBtn.click();
+                    }
+                    else if (functionName === 'setNoiseMasking') {
+                        const enable = functionArgs.enable;
+                        const maskBtn = document.getElementById('start-noise-btn');
+                        if (maskBtn) {
+                            const currentlyMasking = document.getElementById('noise-status') && document.getElementById('noise-status').textContent.includes('ACTIVE');
+                            if ((enable && !currentlyMasking) || (!enable && currentlyMasking)) {
+                                await printAI(`> **[SYSTEM ACTION EXECUTION]** ${enable ? 'Enabling' : 'Disabling'} Traffic Masking...`);
+                                maskBtn.click();
+                            } else {
+                                await printAI(`Traffic Masking is already ${enable ? 'active' : 'inactive'}.`);
+                            }
+                        }
+                    }
+                    else if (functionName === 'initiateEncodingProtocol') {
+                        await printAI(`> **[SYSTEM ACTION EXECUTION]** Initiating Steganography Encoder...`);
+                        
+                        // Switch to covert mode if not already
+                        const logoBtn = document.getElementById('covert-logo-trigger');
+                        if (logoBtn && !document.body.classList.contains('covert-active')) {
+                            logoBtn.click();
+                        }
+                        
+                        // Fill in the payload and password
+                        const secretInputEl = document.getElementById('secret-msg');
+                        const keyInputEl = document.getElementById('enc-key');
+                        if (secretInputEl) {
+                            secretInputEl.value = functionArgs.message || '';
+                            // Highlight the input visually
+                            secretInputEl.style.boxShadow = '0 0 15px #00ffff';
+                            setTimeout(() => secretInputEl.style.boxShadow = '', 2000);
+                        }
+                        if (keyInputEl && functionArgs.password) {
+                            keyInputEl.value = functionArgs.password;
+                            keyInputEl.style.boxShadow = '0 0 15px #ff007f';
+                            setTimeout(() => keyInputEl.style.boxShadow = '', 2000);
+                        }
+                        
+                        await printAI(`**Payload Prepared!** \n\nI have filled out your secret message and password in the payload section.\n\nNow, please click **📎 Attach Audio** or **🎤 Record Voice** to provide the carrier audio file, and then hit Send!`);
+                    } else {
+                        await printAI(`> **[SYSTEM ERROR]** Unknown function called: ${functionName}`);
+                    }
+                } else {
+                    await printAI(aiResponse);
+                }
+            } catch (err) {
+                console.error("AI processing error:", err);
+                await printAI("SYSTEM ERROR: The AI module encountered a critical fault while processing your request. Please try again.");
+            }
         }
     }
 
